@@ -1,36 +1,29 @@
 "use client";
 
-import { Canvas, useThree } from "@react-three/fiber";
-import { Environment } from "@react-three/drei";
-import type { RefObject } from "react";
-import { Suspense, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
+import { Environment, OrbitControls } from "@react-three/drei";
+import { Suspense } from "react";
+import { applyPageBackgroundToRenderer } from "@/lib/canvasBackground";
 import { DiagramGun } from "./DiagramGun";
 import * as THREE from "three";
 
 export interface HeroCanvasProps {
   /** 0–1 progress driving exploded blueprint motion (e.g. from scroll) */
   exploded?: number;
-  /** @deprecated OrbitControls removed; no longer used */
-  controlsRef?: RefObject<{ dollyIn: (d?: number) => void; dollyOut: (d?: number) => void } | null>;
 }
 
 const MODEL_CENTER: [number, number, number] = [0.8, 0.87, 0];
 const CAMERA_POSITION: [number, number, number] = [2.2, 0.87, 0];
 
-function FixedCamera() {
-  const { camera } = useThree();
-  useEffect(() => {
-    camera.position.set(...CAMERA_POSITION);
-    camera.lookAt(new THREE.Vector3(...MODEL_CENTER));
-    camera.updateProjectionMatrix();
-  }, [camera]);
-  return null;
-}
+/** Fixed camera distance from target (orbit + auto-rotate only; no zoom) */
+const FIXED_CAMERA_DISTANCE = new THREE.Vector3(...CAMERA_POSITION).distanceTo(
+  new THREE.Vector3(...MODEL_CENTER)
+);
 
-export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
+export function HeroCanvas({ exploded = 0 }: HeroCanvasProps) {
   return (
     <Canvas
-      className="h-full w-full"
+      className="h-full w-full touch-none"
       camera={{
         position: CAMERA_POSITION,
         fov: 42,
@@ -38,18 +31,32 @@ export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
         far: 100,
       }}
       gl={{
-        alpha: true,
+        alpha: false,
         antialias: true,
         powerPreference: "high-performance",
+        premultipliedAlpha: false,
       }}
       onCreated={({ gl, camera }) => {
-        gl.setClearColor(0xfafaf9, 1);
+        applyPageBackgroundToRenderer(gl);
         camera.lookAt(new THREE.Vector3(...MODEL_CENTER));
       }}
       dpr={[1, 2]}
       frameloop="always"
     >
-      <FixedCamera />
+      <OrbitControls
+        target={MODEL_CENTER}
+        enableDamping
+        dampingFactor={0.06}
+        enableZoom={false}
+        minDistance={FIXED_CAMERA_DISTANCE}
+        maxDistance={FIXED_CAMERA_DISTANCE}
+        minPolarAngle={0.12}
+        maxPolarAngle={Math.PI - 0.35}
+        enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.12}
+      />
+
       <ambientLight intensity={0.92} />
       <directionalLight position={[6, 8, 5]} intensity={1.05} />
       <directionalLight position={[-5, 3, -4]} intensity={0.35} />

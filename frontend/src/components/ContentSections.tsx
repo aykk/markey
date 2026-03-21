@@ -3,7 +3,7 @@ import { SectionChevron } from "@/components/SectionChevron";
 
 export function ContentSections() {
   return (
-    <div className="bg-off-white">
+    <div className="bg-content-grid">
       <section id="what-is-markey" className="flex min-h-dvh flex-col px-8 md:px-16 py-24 md:py-32">
         <div className="flex-1 flex flex-col justify-center">
           <div className="mx-auto max-w-2xl w-full">

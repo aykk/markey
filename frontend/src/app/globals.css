@@ -4,8 +4,11 @@
   --background: #fafaf9;
   --foreground: #36454f;
   --charcoal: #36454f;
+  /* Hero WebGL clear color reads this — keep in sync with src/lib/canvasBackground.ts fallback */
   --off-white: #fafaf9;
   --accent: #06b6d4;
+  /* Blueprint grid line alpha (was 0.055; −10% ≈ 0.0495) */
+  --grid-line-opacity: 0.0495;
 }
 
 @theme inline {
@@ -34,5 +37,58 @@ body {
 }
 *::-webkit-scrollbar {
   display: none;
+}
+
+/* Light blueprint-style grid for long-form content sections */
+.bg-content-grid {
+  background-color: var(--off-white);
+  background-image:
+    linear-gradient(
+      to right,
+      rgb(54 69 79 / var(--grid-line-opacity)) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgb(54 69 79 / var(--grid-line-opacity)) 1px,
+      transparent 1px
+    );
+  background-size: 2.25rem 2.25rem;
+  background-position: left top;
+}
+
+/*
+ * Same grid as .bg-content-grid, faded in along the gradient axis (bottom = full grid).
+ * Use at the bottom of the hero so lines ease in before the sections below.
+ */
+.bg-content-grid-fade-in {
+  background-color: var(--off-white);
+  background-image:
+    linear-gradient(
+      to right,
+      rgb(54 69 79 / var(--grid-line-opacity)) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      rgb(54 69 79 / var(--grid-line-opacity)) 1px,
+      transparent 1px
+    );
+  background-size: 2.25rem 2.25rem;
+  background-position: left top;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 0.35) 38%,
+    rgb(0 0 0 / 0.72) 62%,
+    black 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgb(0 0 0 / 0.35) 38%,
+    rgb(0 0 0 / 0.72) 62%,
+    black 100%
+  );
 }
 

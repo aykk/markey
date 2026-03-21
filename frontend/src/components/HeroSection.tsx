@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ExplodeScrollIndicator } from "@/components/ExplodeScrollIndicator";
 import { HeroCanvas } from "@/components/three/HeroCanvas";
 
 const WHEEL_DELTA_PER_FULL = 800;
@@ -39,6 +40,11 @@ export function HeroSection() {
       <div className="absolute inset-0">
         <HeroCanvas exploded={explodeProgress} />
       </div>
+
+      <ExplodeScrollIndicator
+        explodeProgress={explodeProgress}
+        className="absolute right-3 top-1/2 z-30 -translate-y-1/2 md:right-8"
+      />
 
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center -translate-y-6">
         <div className="flex flex-col items-center gap-4 text-center px-6">
@@ -85,8 +91,8 @@ export function HeroSection() {
       </div>
 
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex flex-col items-center gap-2 pb-8 md:pb-10 translate-y-6">
-        <p className="font-mono text-xs tracking-[0.35em] text-charcoal/70 uppercase">
-          Scroll to unexplode
+        <p className="font-mono text-[10px] md:text-xs tracking-[0.28em] text-charcoal/70 uppercase text-center max-w-[90vw]">
+          Scroll to unexplode · Drag to rotate · Auto-spin
         </p>
         <button
           onClick={scrollToContent}

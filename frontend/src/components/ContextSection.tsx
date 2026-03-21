@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ExplodeScrollIndicator } from "@/components/ExplodeScrollIndicator";
 import { HeroCanvas } from "@/components/three/HeroCanvas";
 import { SectionChevron } from "@/components/SectionChevron";
 
@@ -72,6 +73,18 @@ export function ContextSection() {
       <div className="absolute inset-0 md:left-[45%] z-20 min-h-[280px] md:min-h-0 overflow-visible">
         <HeroCanvas exploded={explodeProgress} />
       </div>
+
+      {/* Wheel “unexplode” progress — matches scroll budget before page scroll */}
+      <ExplodeScrollIndicator
+        explodeProgress={explodeProgress}
+        className="absolute right-3 top-1/2 z-30 -translate-y-1/2 md:right-8"
+      />
+
+      {/* Grid eases in toward the next section — left column only (avoids gun canvas), shifted down */}
+      <div
+        className="pointer-events-none absolute left-0 right-0 -bottom-14 z-8 h-32 sm:h-40 md:-bottom-20 md:right-[55%] md:h-48 bg-content-grid-fade-in"
+        aria-hidden
+      />
     </section>
   );
 }
