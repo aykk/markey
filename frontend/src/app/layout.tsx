@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Markey — Security inside the slicer",
+  title: "MARKEY",
   description:
     "A security and compliance layer that sits inside 3D slicing software. Stops blind translation of meshes into machine instructions.",
 };

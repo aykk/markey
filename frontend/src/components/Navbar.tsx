@@ -3,14 +3,14 @@
 import Link from "next/link";
 
 const NAV_LINKS = [
-  { href: "/", label: "Context", scrollTop: true },
-  { href: "#what-is-markey", label: "Markey", scrollTop: false },
+  { href: "/", label: "Home", scrollTop: true },
+  { href: "#what-is-markey", label: "What is Markey?", scrollTop: false },
   { href: "#how-it-works", label: "How it Works", scrollTop: false },
 ] as const;
 
 export function Navbar() {
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center px-6 md:px-10 py-5 relative">
+    <nav className="flex items-center justify-center px-6 md:px-10 py-5 border-b border-charcoal/40">
       <div className="hidden md:flex items-center gap-8 md:gap-12">
         {NAV_LINKS.map(({ href, label, scrollTop }) => (
           <Link

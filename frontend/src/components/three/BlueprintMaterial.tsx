@@ -25,9 +25,9 @@ export const BlueprintMaterial = forwardRef<
   return (
     <meshStandardMaterial
       ref={ref}
-      color="#06b6d4"
+      color="#ffffff"
       transparent
-      opacity={0.9}
+      opacity={0.35}
       wireframe
       {...props}
     />
@@ -37,9 +37,9 @@ export const BlueprintMaterial = forwardRef<
 BlueprintMaterial.displayName = "BlueprintMaterial";
 
 const BLUEPRINT_PROPS = {
-  color: "#06b6d4",
+  color: "#ffffff",
   transparent: true,
-  opacity: 0.9,
+  opacity: 0.35,
   wireframe: true,
 } as const;
 
