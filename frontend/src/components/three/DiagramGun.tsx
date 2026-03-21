@@ -1,23 +1,23 @@
 "use client";
 
-import { Float, useGLTF } from "@react-three/drei";
+import { useGLTF } from "@react-three/drei";
 import type { ThreeElements } from "@react-three/fiber";
 
 type GroupProps = ThreeElements["group"];
 type MeshProps = ThreeElements["mesh"];
 import { animated, useSpring } from "@react-spring/three";
-import type { ComponentProps, PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
 import type { BufferGeometry, MeshStandardMaterial } from "three";
 import { useBlueprintMaterial } from "./BlueprintMaterial";
 
 useGLTF.preload("/diagramgun.glb");
 
-/** Exploded offsets (model space) — outward on X / Y / Z for blueprint reveal */
+/** Exploded offsets (model space) — spread horizontally for landscape hero */
 const EXPLODE = {
-  barrel: { x: 0.22, y: 0.05, z: 0.1 },
-  slide: { x: 0.05, y: 0.16, z: 0.1 },
-  receiver: { x: -0.06, y: -0.07, z: -0.05 },
-  magazine: { x: -0.08, y: -0.18, z: -0.06 },
+  barrel: { x: 0.12, y: 0, z: 0.06 },
+  slide: { x: 0.08, y: 0.01, z: 0.08 },
+  receiver: { x: -0.1, y: -0.02, z: -0.08 },
+  magazine: { x: -0.12, y: -0.03, z: -0.1 },
 } as const;
 
 const springConfig = { mass: 0.65, tension: 120, friction: 22 };
@@ -36,54 +36,44 @@ function MeshWire({
 }
 
 function ExplodedPart({
-  explode,
+  progress,
   axis,
   children,
-  ...floatProps
-}: PropsWithChildren<
-  {
-    explode: boolean;
-    axis: { x: number; y: number; z: number };
-  } & ComponentProps<typeof Float>
->) {
+}: PropsWithChildren<{
+  progress: number;
+  axis: { x: number; y: number; z: number };
+}>) {
   const { x, y, z } = useSpring({
-    x: explode ? axis.x : 0,
-    y: explode ? axis.y : 0,
-    z: explode ? axis.z : 0,
+    x: progress * axis.x,
+    y: progress * axis.y,
+    z: progress * axis.z,
     config: springConfig,
   });
 
   return (
-    <Float
-      rotationIntensity={0.18}
-      floatIntensity={0.28}
-      speed={1.15}
-      {...floatProps}
-    >
-      <animated.group position-x={x} position-y={y} position-z={z}>
-        {children}
-      </animated.group>
-    </Float>
+    <animated.group position-x={x} position-y={y} position-z={z}>
+      {children}
+    </animated.group>
   );
 }
 
 export interface DiagramGunProps extends GroupProps {
-  /** When true, sub-assemblies translate apart (exploded blueprint) */
-  exploded?: boolean;
+  /** 0–1 progress: sub-assemblies translate apart (exploded blueprint) */
+  exploded?: number;
 }
 
 /**
  * G17-style exploded diagram from `public/diagramgun.glb`.
  * All meshes use the shared blueprint wireframe material.
  */
-export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
+export function DiagramGun({ exploded = 0, ...props }: DiagramGunProps) {
   const { nodes } = useGLTF("/diagramgun.glb") as unknown as { nodes: NodeMap };
   const blueprint = useBlueprintMaterial();
 
   return (
     <group {...props} dispose={null}>
       {/* Receiver — frame, plug, trigger pack, cartridges, outline planes */}
-      <ExplodedPart explode={exploded} axis={EXPLODE.receiver}>
+      <ExplodedPart progress={exploded} axis={EXPLODE.receiver}>
         <MeshWire
           geometry={nodes["35_Plug_low"]!.geometry}
           material={blueprint}
@@ -232,7 +222,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
       </ExplodedPart>
 
       {/* Slide + upper small parts */}
-      <ExplodedPart explode={exploded} axis={EXPLODE.slide}>
+      <ExplodedPart progress={exploded} axis={EXPLODE.slide}>
         <MeshWire
           geometry={nodes["16_Sights_a_low"]!.geometry}
           material={blueprint}
@@ -387,7 +377,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
       </ExplodedPart>
 
       {/* Barrel */}
-      <ExplodedPart explode={exploded} axis={EXPLODE.barrel}>
+      <ExplodedPart progress={exploded} axis={EXPLODE.barrel}>
         <MeshWire
           geometry={nodes["02_Barrel_low"]!.geometry}
           material={blueprint}
@@ -397,7 +387,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
       </ExplodedPart>
 
       {/* Magazine */}
-      <ExplodedPart explode={exploded} axis={EXPLODE.magazine}>
+      <ExplodedPart progress={exploded} axis={EXPLODE.magazine}>
         <MeshWire
           geometry={nodes["32_Magazine_Floorplate_a_low"]!.geometry}
           material={blueprint}
