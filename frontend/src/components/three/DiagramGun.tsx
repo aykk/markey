@@ -1,14 +1,57 @@
 "use client";
 
-import { Float, useGLTF } from "@react-three/drei";
+import { Float, Html, useGLTF } from "@react-three/drei";
+import { animated, useSpring } from "@react-spring/three";
 import type { ThreeElements } from "@react-three/fiber";
+import type { ComponentProps, PropsWithChildren, CSSProperties, ReactNode } from "react";
+import type { BufferGeometry, MeshStandardMaterial } from "three";
+import { useBlueprintMaterial } from "./BlueprintMaterial";
 
 type GroupProps = ThreeElements["group"];
 type MeshProps = ThreeElements["mesh"];
-import { animated, useSpring } from "@react-spring/three";
-import type { ComponentProps, PropsWithChildren } from "react";
-import type { BufferGeometry, MeshStandardMaterial } from "three";
-import { useBlueprintMaterial } from "./BlueprintMaterial";
+
+/** Bare caption — no box; light weight so it reads as diagram annotation */
+const LABEL_STYLE: CSSProperties = {
+  margin: 0,
+  padding: 0,
+  border: "none",
+  background: "transparent",
+  color: "rgba(15, 23, 42, 0.42)",
+  fontSize: "2px",
+  fontWeight: 300,
+  fontFamily:
+    'ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif',
+  letterSpacing: "0.22em",
+  textTransform: "uppercase",
+  whiteSpace: "nowrap",
+  lineHeight: 1,
+  pointerEvents: "none",
+  userSelect: "none",
+};
+
+/**
+ * Minimal text-only caption in 3D space; moves with the exploded assembly.
+ * `distanceFactor` keeps scale consistent when zooming with OrbitControls.
+ */
+function PartLabel({
+  children,
+  position,
+}: {
+  children: ReactNode;
+  position: [number, number, number];
+}) {
+  return (
+    <Html
+      position={position}
+      distanceFactor={10}
+      center
+      occlude={false}
+      style={{ pointerEvents: "none", background: "transparent" }}
+    >
+      <span style={LABEL_STYLE}>{children}</span>
+    </Html>
+  );
+}
 
 useGLTF.preload("/diagramgun.glb");
 
@@ -229,6 +272,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
           position={[-0.038, 0.149, -0.002]}
           scale={0.001}
         />
+        <PartLabel position={[0, 0.13, 0.06]}>PART A</PartLabel>
       </ExplodedPart>
 
       {/* Slide + upper small parts */}
@@ -384,6 +428,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
           material={blueprint}
           position={[0.013, 0.09, 0.023]}
         />
+        <PartLabel position={[0, 0.2, 0.14]}>PART B</PartLabel>
       </ExplodedPart>
 
       {/* Barrel */}
@@ -394,6 +439,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
           position={[0.031, 0.105, 0.14]}
           rotation={[0, 0, Math.PI / 2]}
         />
+        <PartLabel position={[0.12, 0.1, 0.16]}>PART C</PartLabel>
       </ExplodedPart>
 
       {/* Magazine */}
@@ -438,6 +484,7 @@ export function DiagramGun({ exploded = false, ...props }: DiagramGunProps) {
           material={blueprint}
           position={[-0.085, -0.129, -0.127]}
         />
+        <PartLabel position={[0.02, -0.24, 0.02]}>PART D</PartLabel>
       </ExplodedPart>
     </group>
   );
