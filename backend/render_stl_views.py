@@ -7,48 +7,82 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
+SUPPORTED_EXTENSIONS = {
+    ".stl",
+    ".obj",
+    ".ply",
+    ".off",
+    ".glb",
+    ".gltf"
+}
 
-def resolve_input_path(stl_path: str) -> str:
-    if not stl_path:
-        raise ValueError("No STL path provided.")
+def resolve_input_path(model_path: str) -> str:
+    if not model_path:
+        raise ValueError("No model path provided.")
 
-    abs_path = os.path.abspath(os.path.expanduser(stl_path))
+    abs_path = os.path.abspath(os.path.expanduser(model_path))
 
     if not os.path.isfile(abs_path):
-        raise FileNotFoundError(f"STL file not found: {abs_path}")
+        raise FileNotFoundError(f"Model file not found: {abs_path}")
+
+    ext = os.path.splitext(abs_path)[1].lower()
+    if ext not in SUPPORTED_EXTENSIONS:
+        raise ValueError(
+            f"Unsupported file type: {ext}. "
+            f"Supported types: {', '.join(sorted(SUPPORTED_EXTENSIONS))}"
+        )
 
     return abs_path
 
 
-def load_single_mesh(stl_path: str) -> trimesh.Trimesh:
-    stl_path = resolve_input_path(stl_path)
+def load_single_mesh(model_path: str) -> trimesh.Trimesh:
+    model_path = resolve_input_path(model_path)
+    ext = os.path.splitext(model_path)[1].lower()
 
-    mesh = trimesh.load(stl_path, force="mesh")
+    try:
+        loaded = trimesh.load(model_path, force="scene")
+    except Exception as e:
+        raise ValueError(f"Failed to load model '{model_path}': {e}")
 
-    if isinstance(mesh, trimesh.Scene):
-        meshes = [
-            g for g in mesh.geometry.values()
-            if isinstance(g, trimesh.Trimesh) and len(g.faces) > 0
-        ]
+    if isinstance(loaded, trimesh.Trimesh):
+        mesh = loaded
+
+    elif isinstance(loaded, trimesh.Scene):
+        meshes = []
+        for g in loaded.geometry.values():
+            if isinstance(g, trimesh.Trimesh) and g.vertices is not None and g.faces is not None and len(g.faces) > 0:
+                meshes.append(g)
+
         if not meshes:
-            raise ValueError("No mesh geometry found in STL/scene.")
-        mesh = trimesh.util.concatenate(meshes)
+            raise ValueError(f"No usable mesh geometry found in file: {model_path}")
+
+        if len(meshes) == 1:
+            mesh = meshes[0]
+        else:
+            mesh = trimesh.util.concatenate(meshes)
+
+    else:
+        raise ValueError(f"Could not interpret file as a mesh: {model_path}")
 
     if not isinstance(mesh, trimesh.Trimesh):
-        raise ValueError("Could not load STL as a mesh.")
+        raise ValueError(f"Loaded object is not a mesh: {type(mesh)}")
 
     if mesh.faces is None or len(mesh.faces) == 0:
-        raise ValueError("Mesh has no faces.")
+        raise ValueError(f"Mesh has no faces: {model_path}")
 
     if mesh.vertices is None or len(mesh.vertices) == 0:
-        raise ValueError("Mesh has no vertices.")
+        raise ValueError(f"Mesh has no vertices: {model_path}")
 
     return mesh
 
 
 def normalize_mesh(mesh: trimesh.Trimesh) -> trimesh.Trimesh:
     mesh = mesh.copy()
+
+    # Center model at origin
     mesh.apply_translation(-mesh.bounding_box.centroid)
+
+    # Uniformly scale to fit into a standard view cube
     extents = mesh.bounding_box.extents
     max_extent = float(np.max(extents))
 
@@ -112,13 +146,13 @@ def render_view(mesh: trimesh.Trimesh, out_path: str, elev: float, azim: float):
     plt.close(fig)
 
 
-def render_views(stl_path: str, output_dir: str = "renders"):
-    stl_path = resolve_input_path(stl_path)
+def render_views(model_path: str, output_dir: str = "renders"):
+    model_path = resolve_input_path(model_path)
 
     output_dir = os.path.abspath(output_dir)
     os.makedirs(output_dir, exist_ok=True)
 
-    mesh = load_single_mesh(stl_path)
+    mesh = load_single_mesh(model_path)
     mesh = normalize_mesh(mesh)
 
     views = {
@@ -139,14 +173,14 @@ def render_views(stl_path: str, output_dir: str = "renders"):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python render_stl_views.py <file.stl> [output_dir]")
+        print("Usage: python render_stl_views.py <file.stl|file.obj|file.fbx> [output_dir]")
         sys.exit(1)
 
-    stl_file = sys.argv[1]
+    model_file = sys.argv[1]
     out_dir = sys.argv[2] if len(sys.argv) > 2 else "renders"
 
     try:
-        render_views(stl_file, out_dir)
+        render_views(model_file, out_dir)
     except Exception as e:
         print(f"Error: {e}")
         sys.exit(1)
