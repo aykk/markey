@@ -717,15 +717,22 @@ export function ContentSections() {
                 </span>
               </summary>
               <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
-                No. Frontier language models are built for sequential human
-                language, not millions of lines of spatial coordinates. Standard
-                3D prints generate massive G-code files that quickly exceed the
-                memory limits (context windows) of general AI. Even when they can
-                ingest the file, they suffer from the &quot;Lost in the
-                Middle&quot; phenomenon, failing to find specific patterns in
-                highly repetitive data. Our model is purpose-built using
-                localized feature extraction to natively understand 3D spatial
-                sequences.
+                <p>
+                  No. Frontier language models are built for sequential human
+                  language, not millions of lines of spatial coordinates.
+                  Standard 3D prints generate massive G-code files that quickly
+                  exceed the memory limits (context windows) of general AI. Even
+                  when they can ingest the file, they suffer from the &quot;Lost
+                  in the Middle&quot; phenomenon, failing to find specific
+                  patterns in highly repetitive data. Our model is purpose-built
+                  using localized feature extraction to natively understand 3D
+                  spatial sequences.
+                </p>
+                <p className="mt-4">
+                  In our testing, all frontier models such as gpt-5.4-xhigh,
+                  opus-4.6-high, and gemini-3.1-pro hallucinated and outputted
+                  the wrong answer on what the G-code might be printing out.
+                </p>
               </div>
             </details>
 
