@@ -93,7 +93,9 @@ export function HomePageClient() {
                   Toolpath generation
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
-                  The slicer converts a CAD file or mesh into raw G-code.
+                  The slicer converts a CAD file or mesh into raw G-code. Markey
+                  ingests standard mesh formats (STL, OBJ, GLB) at the compliance
+                  layer for vision analysis before export.
                 </p>
               </div>
               <div>
@@ -117,9 +119,10 @@ export function HomePageClient() {
                   Heuristic auditing
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
-                  An LLM analyzes the visual and spatial data to identify
-                  restricted geometries. If a prohibited component is detected,
-                  the system triggers a failsafe and halts the extrusion export.
+                  Vision models and LLMs analyze renderings and spatial signals to
+                  flag restricted geometries. When a prohibited component is
+                  detected, policy enforcement halts extrusion export and surfaces
+                  a clear verdict at the export gate.
                 </p>
               </div>
             </div>
@@ -144,20 +147,80 @@ export function HomePageClient() {
 
           <section className={SECTION_SPACING}>
             <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
+              Between the slicer and the printer
+            </h2>
+            <p className="text-charcoal/85 leading-relaxed text-sm mb-6">
+              Markey sits where a 3D model becomes print instructions and those
+              instructions are sent to the machine. It reviews the part and the
+              real print file, and can block the job before hardware runs. Teams
+              keep their slicers; Markey is the checkpoint in the middle.
+            </p>
+            <p className="font-mono text-[10px] tracking-[0.2em] text-charcoal/55 uppercase mb-4">
+              Other places it can plug in
+            </p>
+            <ul className="space-y-4 text-charcoal/85 leading-relaxed text-sm">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                <span className="font-mono text-xs uppercase tracking-wide text-charcoal">
+                  Pi / Klipper style
+                </span>
+                ,{" "}
+                Same small computer that already runs the printer can vet or
+                hold files before they reach the printer&apos;s internal board.
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                <span className="font-mono text-xs uppercase tracking-wide text-charcoal">
+                  Cloud &amp; networked jobs
+                </span>
+                ,{" "}
+                Check jobs on a server or office PC while they are still in the
+                queue, before the printer starts.
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                <span className="font-mono text-xs uppercase tracking-wide text-charcoal">
+                  Resin &amp; industrial
+                </span>
+                ,{" "}
+                Attach where the print file already goes through plant or desktop
+                software; keep heavy analysis off the machine&apos;s minimal
+                control hardware.
+              </li>
+            </ul>
+          </section>
+
+          <section className={SECTION_SPACING}>
+            <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
               Features
             </h2>
-            <p className="text-charcoal/85 leading-relaxed mb-4">
-              Data visualizations include:
+            <p className="text-charcoal/85 leading-relaxed mb-3 text-sm">
+              Classification &amp; vision:
+            </p>
+            <ul className="space-y-2 text-charcoal/85 leading-relaxed text-sm mb-6">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Label, confidence, summary, and model reasoning
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Six orthographic renders (front, back, left, right, top,
+                bottom)
+              </li>
+            </ul>
+            <p className="text-charcoal/85 leading-relaxed mb-3 text-sm">
+              Analyst dashboard:
             </p>
             <ul className="space-y-2 text-charcoal/85 leading-relaxed text-sm">
-              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
-                Confidence values
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Policy verdict, analyst narrative, export-gate status
               </li>
-              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
-                Part it recognizes the object as
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Risk index and confidence bars
               </li>
-              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
-                Other parts it may recognize the object as
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Alternate hypotheses and view-salience charts (Recharts)
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Salience-weighted orthographic grid
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Instrumented pipeline trace and analyst insight bullets
               </li>
             </ul>
           </section>
