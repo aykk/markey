@@ -72,9 +72,15 @@ export async function POST(req: NextRequest) {
 
     let classification;
     try {
-      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object in output");
-      classification = JSON.parse(jsonMatch[0]);
+      const trimmed = stdout.trim();
+      // Prefer full stdout as JSON (gemini.py prints only json.dumps to stdout).
+      try {
+        classification = JSON.parse(trimmed);
+      } catch {
+        const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON object in output");
+        classification = JSON.parse(jsonMatch[0]);
+      }
     } catch {
       classification = {
         label: "unknown",
