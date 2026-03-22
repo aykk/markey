@@ -11,6 +11,7 @@ import {
 
 type Classification = {
   label: string;
+  verdict?: string;
   confidence: number;
   summary: string;
   reasons: string[];
@@ -185,8 +186,9 @@ export default function DemoPage() {
           </h1>
           <p className="text-charcoal/60 text-sm leading-relaxed mb-10 max-w-lg">
             Upload a 3D file. The pipeline renders six orthographic views,
-            classifies the geometry, and enriches the result with policy
-            analytics, charts, salience weighting, and export-gate status.
+            slices the mesh to G-code with Cura, classifies the G-code, and
+            enriches the result with policy analytics, charts, salience
+            weighting, and export-gate status.
           </p>
 
           <div className="mb-8">
@@ -274,11 +276,11 @@ export default function DemoPage() {
               <div className="flex items-center gap-3">
                 <div className="h-3 w-3 border border-charcoal/40 animate-spin border-t-charcoal" />
                 <p className="font-mono text-xs tracking-widest text-charcoal/60 uppercase">
-                  Rendering views and classifying…
+                  Rendering, slicing, and classifying…
                 </p>
               </div>
               <p className="text-charcoal/40 text-xs mt-3">
-                This may take up to 30 seconds.
+                This may take up to a minute on the first run.
               </p>
             </div>
           )}
@@ -297,7 +299,10 @@ export default function DemoPage() {
                 {result!.filename}
               </p>
               <p className="font-mono text-sm text-charcoal mt-1 uppercase tracking-wide">
-                {result!.classification.label.replace(/_/g, " ")}
+                {(result!.classification.verdict ?? result!.classification.label).replace(
+                  /_/g,
+                  " "
+                )}
               </p>
             </div>
             <div className="flex items-center gap-3">
