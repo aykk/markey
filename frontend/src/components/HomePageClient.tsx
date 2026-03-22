@@ -247,7 +247,7 @@ export function HomePageClient() {
 
           <div className="pt-8">
             <a
-              href="https://huggingface.co/jungter/markey-v1"
+              href="https://huggingface.co/jungter/markey-v1/tree/main"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-[42px] items-center justify-center rounded-sm border-2 border-charcoal/40 px-6 font-mono text-sm tracking-[0.2em] uppercase text-charcoal transition-colors hover:border-charcoal hover:bg-charcoal/5"

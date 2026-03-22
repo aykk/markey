@@ -459,7 +459,7 @@ export function ContentSections() {
             className="mt-16 border-t border-charcoal/20 pt-12 transition-opacity duration-500"
           >
             <a
-              href="https://huggingface.co/jungter/markey-v1"
+              href="https://huggingface.co/jungter/markey-v1/tree/main"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-[42px] items-center justify-center bg-black px-6 font-mono text-xs uppercase tracking-[0.2em] text-off-white transition-[color,background-color,transform,box-shadow] duration-300 ease-out hover:bg-black/80 hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] active:scale-[0.98]"

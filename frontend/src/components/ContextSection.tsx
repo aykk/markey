@@ -70,7 +70,7 @@ export function ContextSection() {
             Learn more
           </a>
           <a
-            href="https://huggingface.co/jungter/markey-v1"
+            href="https://huggingface.co/jungter/markey-v1/tree/main"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex h-[42px] items-center justify-center px-6 font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-black transition-colors duration-300 ease-out hover:bg-black/80"
