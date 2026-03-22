@@ -36,9 +36,11 @@ export function ContentSections() {
                 </span>
               </p>
               <p className="max-w-3xl font-sans text-sm leading-relaxed text-charcoal/80 md:text-[0.9375rem]">
-                Slicers turn meshes into G-code without knowing what they
-                represent, so risk concentrates at that handoff, and regulation
-                is catching up.
+                A ghost gun is an untraceable firearm, often 3D-printed at home,
+                that requires no background check and carries no serial number.
+                Over 92,000 have been seized since 2017, with 1,700 tied to
+                homicides. The printer software that produces them has zero
+                awareness of what it builds.
               </p>
             </header>
 
@@ -418,10 +420,10 @@ export function ContentSections() {
             </div>
           </div>
 
-          {/* Background */}
+          {/* Extra information */}
           <div className="mt-16 border-t border-charcoal/20 pt-12">
             <h3 className="mb-8 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
-              Background
+              Extra information
             </h3>
             <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-2">
               <div
@@ -477,6 +479,7 @@ export function ContentSections() {
         className="border-t border-charcoal/40 bg-off-white px-8 py-20 md:px-12 md:py-28 lg:px-16"
       >
         <div className="mx-auto w-full max-w-4xl">
+          {/* Header */}
           <p className="mb-6 md:mb-8">
             <span
               className={`font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase ${sectionHighlightClass}`}
@@ -488,29 +491,83 @@ export function ContentSections() {
           <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(28px,10px+2vw,48px)] font-semibold tracking-tight text-charcoal leading-[1.1] mb-4">
             VERT evaluation
           </h2>
-          <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-16">
+          <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-10">
             VERT (View-Enhanced Recognition Transformer) was trained on a
-            labeled dataset of gun and non-gun 3D-printable meshes. Below are
-            the key outputs from evaluation.
+            labeled dataset of gun and non-gun 3D-printable meshes rendered
+            into fixed orthographic views before classification.
           </p>
 
-          <div className="space-y-16">
-            {/* Confusion matrix */}
-            <div
-              className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
-            >
-              <div className="px-6 py-6 md:px-8 md:py-8">
-                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+          {/* Key metrics strip */}
+          <div className="grid grid-cols-2 gap-0 border border-charcoal/40 bg-off-white md:grid-cols-4 mb-16">
+            <div className={`border-b border-r border-charcoal/40 px-5 py-5 md:border-b-0 md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}>
+              <p className="font-mono text-2xl md:text-3xl font-bold text-charcoal tracking-tight">
+                99.3%
+              </p>
+              <p className="mt-1 font-mono text-[10px] md:text-xs tracking-[0.15em] text-charcoal/55 uppercase">
+                Val accuracy
+              </p>
+            </div>
+            <div className={`border-b border-charcoal/40 px-5 py-5 md:border-b-0 md:border-r md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}>
+              <p className="font-mono text-2xl md:text-3xl font-bold text-charcoal tracking-tight">
+                0
+              </p>
+              <p className="mt-1 font-mono text-[10px] md:text-xs tracking-[0.15em] text-charcoal/55 uppercase">
+                False negatives
+              </p>
+            </div>
+            <div className={`border-r border-charcoal/40 px-5 py-5 md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}>
+              <p className="font-mono text-2xl md:text-3xl font-bold text-charcoal tracking-tight">
+                400
+              </p>
+              <p className="mt-1 font-mono text-[10px] md:text-xs tracking-[0.15em] text-charcoal/55 uppercase">
+                Test samples
+              </p>
+            </div>
+            <div className={`px-5 py-5 md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}>
+              <p className="font-mono text-2xl md:text-3xl font-bold text-charcoal tracking-tight">
+                ~8
+              </p>
+              <p className="mt-1 font-mono text-[10px] md:text-xs tracking-[0.15em] text-charcoal/55 uppercase">
+                Epochs to converge
+              </p>
+            </div>
+          </div>
+
+          {/* Confusion matrix */}
+          <div className="border-t border-charcoal/20 pt-12 mb-16">
+            <div className="md:grid md:grid-cols-5 md:gap-10">
+              <div className="md:col-span-2 mb-6 md:mb-0">
+                <h3 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
                   Confusion matrix
                 </h3>
-                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
-                  Binary classification on the held-out test set: 176 true
-                  negatives, 224 true positives, 3 false positives, and zero
-                  false negatives. The model never missed an actual firearm
-                  part, which is the failure mode that matters most for a
-                  safety gate.
+                <p className="text-charcoal/70 leading-relaxed text-sm mb-5">
+                  Binary classification on the held-out test set. The model
+                  never missed an actual firearm part, the failure mode that
+                  matters most for a safety gate.
                 </p>
-                <div className="relative w-full max-w-md mx-auto">
+                <dl className="space-y-2">
+                  <div className="flex items-baseline justify-between border-b border-charcoal/10 pb-2">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">True negatives</dt>
+                    <dd className="font-mono text-sm font-semibold text-charcoal">176</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-charcoal/10 pb-2">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">True positives</dt>
+                    <dd className="font-mono text-sm font-semibold text-charcoal">224</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-charcoal/10 pb-2">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">False positives</dt>
+                    <dd className="font-mono text-sm font-semibold text-charcoal">3</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">False negatives</dt>
+                    <dd className="font-mono text-sm font-bold text-charcoal">0</dd>
+                  </div>
+                </dl>
+              </div>
+              <div
+                className={`md:col-span-3 border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
+              >
+                <div className="p-4 md:p-6">
                   <Image
                     src="/VERT_confusion_matrix.webp"
                     alt="Confusion matrix showing 176 true negatives, 224 true positives, 3 false positives, 0 false negatives"
@@ -521,22 +578,40 @@ export function ContentSections() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Training curves */}
-            <div
-              className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
-            >
-              <div className="px-6 py-6 md:px-8 md:py-8">
-                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+          {/* Training curves */}
+          <div className="border-t border-charcoal/20 pt-12 mb-16">
+            <div className="md:grid md:grid-cols-5 md:gap-10">
+              <div className="md:col-span-2 mb-6 md:mb-0">
+                <h3 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
                   Training curves
                 </h3>
-                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
-                  Loss converges within the first few epochs and stays flat,
-                  with no divergence between train and validation. Validation
-                  accuracy climbs to 99.3% by epoch 8 and holds. The model
-                  learns the boundary quickly and does not overfit.
+                <p className="text-charcoal/70 leading-relaxed text-sm mb-5">
+                  Loss converges within the first few epochs with no divergence
+                  between train and validation. Accuracy reaches 99.3% by
+                  epoch 8 and holds flat. The model learns the boundary quickly
+                  and does not overfit.
                 </p>
-                <div className="relative w-full">
+                <dl className="space-y-2">
+                  <div className="flex items-baseline justify-between border-b border-charcoal/10 pb-2">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">Final train loss</dt>
+                    <dd className="font-mono text-sm font-semibold text-charcoal">&lt; 0.01</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between border-b border-charcoal/10 pb-2">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">Final val loss</dt>
+                    <dd className="font-mono text-sm font-semibold text-charcoal">~0.05</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between">
+                    <dt className="font-mono text-xs tracking-wide text-charcoal/60 uppercase">Peak val accuracy</dt>
+                    <dd className="font-mono text-sm font-bold text-charcoal">99.3%</dd>
+                  </div>
+                </dl>
+              </div>
+              <div
+                className={`md:col-span-3 border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
+              >
+                <div className="p-4 md:p-6">
                   <Image
                     src="/VERT_training_curves.webp"
                     alt="Training loss and validation accuracy curves over 20 epochs, converging early with 99.3% final accuracy"
@@ -547,32 +622,31 @@ export function ContentSections() {
                 </div>
               </div>
             </div>
+          </div>
 
-            {/* Feature distributions */}
+          {/* Feature distributions */}
+          <div className="border-t border-charcoal/20 pt-12">
+            <h3 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+              Feature distributions
+            </h3>
+            <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-8">
+              Per-feature histograms split by class (gun vs. non-gun). Several
+              G-code-derived features, particularly movement counts, coordinate
+              ranges, and extrusion ratios, show clear separation between
+              classes, confirming the classifier relies on structurally grounded
+              signal rather than noise.
+            </p>
             <div
               className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
             >
-              <div className="px-6 py-6 md:px-8 md:py-8">
-                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
-                  Feature distributions
-                </h3>
-                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
-                  Per-feature histograms split by class (gun vs. non-gun).
-                  Several G-code-derived features, particularly movement
-                  counts, coordinate ranges, and extrusion ratios, show clear
-                  separation between classes, confirming the signal the
-                  classifier relies on is structurally grounded rather than
-                  noise.
-                </p>
-                <div className="relative w-full">
-                  <Image
-                    src="/VERT_feature_distributions.webp"
-                    alt="Grid of per-feature histograms comparing gun and non-gun class distributions across G-code features"
-                    width={2994}
-                    height={2384}
-                    className="w-full h-auto"
-                  />
-                </div>
+              <div className="p-4 md:p-6">
+                <Image
+                  src="/VERT_feature_distributions.webp"
+                  alt="Grid of per-feature histograms comparing gun and non-gun class distributions across G-code features"
+                  width={2994}
+                  height={2384}
+                  className="w-full h-auto"
+                />
               </div>
             </div>
           </div>

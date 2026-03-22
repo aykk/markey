@@ -45,13 +45,14 @@ export function ContextSection() {
             .
           </span>
         </h1>
-        <p className="mt-8 font-mono text-charcoal/85 text-sm tracking-[0.15em] uppercase leading-relaxed">
+
+        <p className="mt-11 font-mono text-charcoal/85 text-sm tracking-[0.15em] uppercase leading-relaxed">
           In 2026, laws have been passed in Colorado, California, and New York to restrict this, but <strong className="font-semibold text-charcoal">little to no software exists</strong> to enforce it.
         </p>
 
         <ul className="mt-10 list-disc list-outside space-y-4 pl-5 marker:text-charcoal/40">
           <li className="font-sans text-sm text-charcoal/65 leading-relaxed pl-1">
-            Ghost guns are <strong className="font-medium text-charcoal/90">unserialized and untraceable,</strong> often made via 3D printing.
+            Since 2017, ghost gun recoveries have surged <strong className="font-medium text-charcoal/90">1,600%,</strong> with over 92,000 seized by law enforcement through 2023.
           </li>
           <li className="font-sans text-sm text-charcoal/65 leading-relaxed pl-1">
             As of now, 3D printers have no guardrails. <strong className="font-medium text-charcoal/90">Virtually no software can detect or block prohibited blueprints.</strong>
