@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  let body: { classification?: ClassificationLike; filename?: string };
+  let body: { classification?: ClassificationLike; filename?: string; views?: Record<string, string> };
   try {
     body = await req.json();
   } catch {
@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const filename = typeof body.filename === "string" ? body.filename : "model";
+  const views = body.views || {};
 
   const prompt = `You fill in DEMO dashboard JSON for a small research project (Markey) that classifies 3D mesh uploads.
 The classifier already produced this result (authoritative for allowed vs restricted):
@@ -38,6 +39,9 @@ The classifier already produced this result (authoritative for allowed vs restri
 ${JSON.stringify(classification, null, 2)}
 
 File name: ${filename}
+
+Look at the provided orthographic renderings of the 3D model. 
+ONLY if the model confirms it is a restricted mechanical component (e.g. label is "restricted_mechanical_part" or "yes it's a gun"), you MUST explicitly state exactly what specific restricted component you visually identify it as in the analystNote. If it is allowed, do not guess what it is.
 
 Return ONLY valid JSON (no markdown fences) with this shape:
 {
@@ -53,16 +57,32 @@ Return ONLY valid JSON (no markdown fences) with this shape:
 }
 
 Rules:
-- If label is "restricted_mechanical_part", use BLOCK_EXPORT or MANUAL_REVIEW and exportBlocked true unless you have strong reason for review only.
+- If label is "restricted_mechanical_part" or "yes it's a gun", use BLOCK_EXPORT or MANUAL_REVIEW and exportBlocked true unless you have strong reason for review only.
 - If label is "allowed", use ALLOW_EXPORT and exportBlocked false.
 - Hypotheses must be plausible alternatives (e.g. bracket vs receiver).
-- Stay consistent with the provided summary and reasons.`;
+- Alternate hypotheses MUST NOT include the true item classification itself (e.g. if the item is a silencer, do not include 'silencer'; ONLY list ALTERNATIVE incorrect guesses).
+- Stay consistent with the provided summary and reasons.
+- In the analystNote, refer to the system as "Markey" instead of "Automated classification" or "The classifier".
+- NEVER use the word "gun" in any of the output text. Always refer to it as a "firearm component" or "restricted mechanical component".
+- When summarizing the classification result, explicitly state that it resulted in a "restricted mechanical component" or "accepted mechanical component".`;
 
   try {
     const ai = new GoogleGenAI({ apiKey: key });
+    
+    const imageParts = Object.values(views).map((base64Url: string) => {
+      const match = base64Url.match(/^data:(image\/[a-zA-Z]+);base64,(.+)$/);
+      if (!match) return null;
+      return {
+        inlineData: {
+          mimeType: match[1],
+          data: match[2],
+        },
+      };
+    }).filter(Boolean) as any[];
+
     const response = await ai.models.generateContent({
       model: MODEL,
-      contents: prompt,
+      contents: [prompt, ...imageParts],
     });
 
     const text = response.text;

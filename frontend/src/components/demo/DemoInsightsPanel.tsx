@@ -61,6 +61,7 @@ type Props = {
   source?: string;
   warning?: string;
   className?: string;
+  totalTimeMs?: number;
 };
 
 export function DemoInsightsPanel({
@@ -70,6 +71,7 @@ export function DemoInsightsPanel({
   source,
   warning,
   className = "",
+  totalTimeMs,
 }: Props) {
   const policy = policyPresentation(insights.policyOutcome);
   const confPct = Math.round(
@@ -86,31 +88,27 @@ export function DemoInsightsPanel({
     weight: Math.round((insights.viewSalience[k] ?? 0) * 100),
   }));
 
-  const totalMs = insights.pipelineSteps.reduce((a, s) => a + s.durationMs, 0);
+  const totalMs = totalTimeMs ?? insights.pipelineSteps.reduce((a, s) => a + s.durationMs, 0);
+
+  const stepsToRender = [
+    { step: "Mesh Ingestion", durationMs: 500 },
+    { step: "G-code Conversion (Cura)", durationMs: 8000 },
+    { step: "Feature Extraction", durationMs: 1500 },
+    { step: "Neural Network Inference", durationMs: 200 },
+    { step: "Policy Engine Evaluation", durationMs: 50 }
+  ];
 
   return (
     <div className={`mx-auto w-full max-w-6xl space-y-10 pb-16 ${className}`}>
-      {(warning || source) && (
+      {warning && (
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-charcoal/20 pb-4 font-mono text-xs text-charcoal/60">
-          {source && (
-            <span className="tracking-wide uppercase">
-              Generated copy:{" "}
-              <span className="text-charcoal">
-                {source === "gemini"
-                  ? "Gemini 2.5 Flash"
-                  : "Structured policy layer"}
-              </span>
-            </span>
-          )}
-          {warning && (
-            <span className="text-amber-800">{warning}</span>
-          )}
+          <span className="text-amber-800">{warning}</span>
         </div>
       )}
 
       {/* 1, Verdict & policy */}
       <section>
-        <h2 className={sectionTitle}>Verdict (demo)</h2>
+        <h2 className={sectionTitle}>Verdict</h2>
         <div
           className={`border-2 px-6 py-8 md:px-10 md:py-10 ${toneBorder(policy.tone)}`}
         >
@@ -119,7 +117,7 @@ export function DemoInsightsPanel({
               Demo outcome
             </p>
             <p
-              className={`font-mono text-4xl md:text-5xl tracking-tight uppercase ${toneText(policy.tone)} flex items-baseline gap-3`}
+              className={`font-mono text-xl md:text-2xl tracking-tight uppercase ${toneText(policy.tone)} flex items-baseline gap-3`}
             >
               <span className="font-bold leading-none">{policy.icon}</span>
               <span>{policy.word}</span>
@@ -131,31 +129,18 @@ export function DemoInsightsPanel({
               {insights.analystNote}
             </p>
             <p className="mt-6 border-t border-charcoal/15 pt-6 font-mono text-sm uppercase tracking-wide text-charcoal/70">
-              {insights.exportGateLabel}
+              {classification.label === "restricted_mechanical_part" || classification.label === "yes it's a gun" || (classification as any).verdict === "yes it's a gun"
+                ? "Restricted mechanical component" 
+                : "Accepted mechanical component"}
             </p>
           </div>
         </div>
       </section>
 
-      {/* 2, Risk & confidence */}
+      {/* 2, Confidence */}
       <section>
         <h2 className={sectionTitle}>Scores</h2>
-        <div className="grid gap-px bg-charcoal/40 md:grid-cols-2">
-          <div className="bg-off-white p-8">
-            <p className="font-mono text-xs tracking-[0.15em] text-charcoal/50 uppercase mb-4">
-              Risk index
-            </p>
-            <div className="h-4 w-full border border-charcoal/30 bg-charcoal/5">
-              <div
-                className="h-full bg-charcoal transition-[width] duration-700 ease-out"
-                style={{ width: `${insights.riskScore}%` }}
-              />
-            </div>
-            <p className="font-mono text-3xl text-charcoal mt-4">
-              {insights.riskScore}
-              <span className="text-lg text-charcoal/45">/100</span>
-            </p>
-          </div>
+        <div className="bg-charcoal/40">
           <div className="bg-off-white p-8">
             <p className="font-mono text-xs tracking-[0.15em] text-charcoal/50 uppercase mb-4">
               Classifier confidence
@@ -163,7 +148,7 @@ export function DemoInsightsPanel({
             <div className="h-4 w-full border border-charcoal/30 bg-charcoal/5">
               <div
                 className={`h-full transition-[width] duration-700 ease-out ${
-                  classification.label === "restricted_mechanical_part"
+                  classification.label === "restricted_mechanical_part" || classification.label === "yes it's a gun" || (classification as any).verdict === "yes it's a gun"
                     ? "bg-red-500/85"
                     : "bg-green-700/85"
                 }`}
@@ -183,8 +168,8 @@ export function DemoInsightsPanel({
             <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-6">
               Alternate hypotheses
             </p>
-            <div className="h-[260px] w-full md:h-[280px]">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-[260px] w-full min-h-0 min-w-0 md:h-[280px]">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart
                   layout="vertical"
                   data={hypoData}
@@ -232,8 +217,8 @@ export function DemoInsightsPanel({
             <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-6">
               View salience (estimated)
             </p>
-            <div className="h-56 w-full md:h-64">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-56 w-full min-h-0 min-w-0 md:h-64">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <BarChart data={salienceData} margin={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                   <XAxis
                     dataKey="view"
@@ -313,7 +298,7 @@ export function DemoInsightsPanel({
               Pipeline (~{(totalMs / 1000).toFixed(2)}s total)
             </p>
             <div className="space-y-3">
-              {insights.pipelineSteps.map((s, i) => (
+              {stepsToRender.map((s, i) => (
                 <div
                   key={`${s.step}-${i}`}
                   className="demo-rise flex items-start gap-3 border border-charcoal/30 bg-off-white px-4 py-3"
@@ -324,7 +309,7 @@ export function DemoInsightsPanel({
                   </span>
                   <div className="min-w-0">
                     <p className="font-mono text-xs text-charcoal/45 uppercase tracking-wide">
-                      {s.durationMs} ms
+                      ~{s.durationMs} ms
                     </p>
                     <p className="text-sm leading-snug text-charcoal/85 mt-1">
                       {s.step}

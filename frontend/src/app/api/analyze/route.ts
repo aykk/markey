@@ -297,6 +297,7 @@ export async function POST(req: NextRequest) {
       views: viewImages,
       classification,
       filename: file.name,
+      totalTimeMs: elapsedMs(startedAt),
     });
   } catch (err: unknown) {
     const failure = createStepFailure("unknown", err);
