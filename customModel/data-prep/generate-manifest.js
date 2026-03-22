@@ -17,25 +17,50 @@ function walkDir(dir) {
   return results;
 }
 
+function cleanName(str) {
+  if (!str) return null;
+  return str
+    .replace(/\.stl$/i, "")
+    .replace(/[-_]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractPart(fileName, itemName) {
+  let raw = fileName.replace(/\.stl$/i, "");
+  if (itemName) {
+    const escaped = itemName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const prefix = escaped.replace(/[-_]+/g, "[-_ ]*");
+    raw = raw.replace(new RegExp("^" + prefix + "[-_ ]*", "i"), "");
+  }
+  return cleanName(raw) || cleanName(fileName);
+}
+
 const stlFiles = walkDir(ROOT);
 const manifest = stlFiles.map((filePath) => {
   const rel = path.relative(ROOT, filePath).split(path.sep);
   const fileName = rel[rel.length - 1];
   const SKIP = new Set(["stl", "stls", "renders", "step", "guides", "gcode"]);
   const dirs = rel.slice(0, -1).filter((d) => !SKIP.has(d.toLowerCase()));
-  const category = dirs[0] || null;
-  const itemName = dirs[dirs.length - 1] || null;
+  const category = cleanName(dirs[0]);
+  const rawItem = dirs[dirs.length - 1] || null;
+  const item = cleanName(rawItem);
   const rawSub = dirs.length > 2 ? dirs.slice(1, -1).join("/") : dirs[1] || null;
-  const subcategory = rawSub === itemName ? null : rawSub;
-  const fileSizeBytes = fs.statSync(filePath).size;
+  const subcategory = rawSub === rawItem ? null : cleanName(rawSub);
+  const part = extractPart(fileName, rawItem);
+
+  const labels = [category, subcategory, item, part]
+    .filter(Boolean)
+    .map((l) => l.toLowerCase());
+  const uniqueLabels = [...new Set(labels)];
 
   return {
-    fileName,
+    file: rel.join("/"),
     category,
     subcategory,
-    itemName,
-    relativePath: rel.join("/"),
-    fileSizeBytes,
+    item,
+    part,
+    labels: uniqueLabels,
   };
 });
 
