@@ -2,6 +2,12 @@
 
 import Link from "next/link";
 import { useState, useCallback, useRef } from "react";
+import { DemoInsightsPanel } from "@/components/demo/DemoInsightsPanel";
+import {
+  buildFallbackInsights,
+  type ClassificationLike,
+  type DemoInsights,
+} from "@/lib/demo-insights";
 
 type Classification = {
   label: string;
@@ -24,6 +30,10 @@ export default function DemoPage() {
   const [dragActive, setDragActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [insights, setInsights] = useState<DemoInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const [insightsSource, setInsightsSource] = useState<string | undefined>();
+  const [insightsWarning, setInsightsWarning] = useState<string | undefined>();
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -43,6 +53,9 @@ export default function DemoPage() {
       setFile(f);
       setError(null);
       setResult(null);
+      setInsights(null);
+      setInsightsSource(undefined);
+      setInsightsWarning(undefined);
     },
     [isValidFile]
   );
@@ -73,8 +86,12 @@ export default function DemoPage() {
   const analyze = useCallback(async () => {
     if (!file) return;
     setLoading(true);
+    setInsightsLoading(false);
     setError(null);
     setResult(null);
+    setInsights(null);
+    setInsightsSource(undefined);
+    setInsightsWarning(undefined);
 
     try {
       const formData = new FormData();
@@ -92,7 +109,39 @@ export default function DemoPage() {
         return;
       }
 
-      setResult(data);
+      setResult(data as AnalysisResult);
+      setLoading(false);
+
+      const c = data.classification as ClassificationLike;
+      setInsightsLoading(true);
+      try {
+        const ir = await fetch("/api/demo-insights", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            classification: c,
+            filename: data.filename,
+          }),
+        });
+        const j = await ir.json();
+        if (ir.ok && j.insights) {
+          setInsights(j.insights as DemoInsights);
+          setInsightsSource(j.source);
+          setInsightsWarning(j.warning);
+        } else {
+          setInsights(buildFallbackInsights(c));
+          setInsightsSource("fallback");
+          setInsightsWarning(
+            typeof j.error === "string" ? j.error : "Insights API unavailable"
+          );
+        }
+      } catch {
+        setInsights(buildFallbackInsights(c));
+        setInsightsSource("fallback");
+        setInsightsWarning("Could not reach insights service");
+      } finally {
+        setInsightsLoading(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Network error.");
     } finally {
@@ -103,6 +152,9 @@ export default function DemoPage() {
   const reset = useCallback(() => {
     setFile(null);
     setResult(null);
+    setInsights(null);
+    setInsightsSource(undefined);
+    setInsightsWarning(undefined);
     setError(null);
     if (inputRef.current) inputRef.current.value = "";
   }, []);
@@ -110,34 +162,33 @@ export default function DemoPage() {
   const isRestricted =
     result?.classification?.label === "restricted_mechanical_part";
 
+  const showDashboard = Boolean(result && !loading);
+
   return (
-    <main className="min-h-dvh bg-off-white">
-      {/* Navbar */}
-      <nav className="flex items-center justify-between px-6 md:px-10 py-5 border-b border-charcoal/40">
+    <main className="flex min-h-dvh flex-col bg-off-white">
+      <nav className="flex shrink-0 items-center justify-between border-b border-charcoal/40 px-4 py-3 md:px-8">
         <Link
           href="/"
-          className="font-mono text-xs tracking-[0.2em] text-charcoal/70 hover:text-charcoal uppercase transition-colors"
+          className="font-mono text-[10px] tracking-[0.2em] text-charcoal/70 hover:text-charcoal uppercase transition-colors md:text-xs"
         >
           ← Home
         </Link>
-        <span className="font-mono text-xs tracking-[0.2em] text-charcoal uppercase">
+        <span className="font-mono text-[10px] tracking-[0.2em] text-charcoal uppercase md:text-xs">
           Demo
         </span>
       </nav>
 
-      <div className="px-6 md:px-12 py-12 md:py-20 max-w-5xl mx-auto">
-        {/* Header */}
-        <h1 className="font-mono text-2xl md:text-3xl tracking-[0.15em] text-charcoal uppercase mb-3">
-          Analyze a 3D model
-        </h1>
-        <p className="text-charcoal/60 text-sm leading-relaxed mb-10 max-w-lg">
-          Upload a 3D file to classify it using Markey&apos;s ML pipeline. The
-          model is rendered from six orthographic views and analyzed by Gemini
-          Vision.
-        </p>
+      {!showDashboard ? (
+        <div className="mx-auto w-full max-w-5xl px-6 py-10 md:px-12 md:py-16">
+          <h1 className="font-mono text-2xl md:text-3xl tracking-[0.15em] text-charcoal uppercase mb-3">
+            Analyze a 3D model
+          </h1>
+          <p className="text-charcoal/60 text-sm leading-relaxed mb-10 max-w-lg">
+            Upload a 3D file. The pipeline renders six orthographic views,
+            classifies the geometry, and enriches the result with policy
+            analytics, charts, salience weighting, and export-gate status.
+          </p>
 
-        {/* Upload zone */}
-        {!result && (
           <div className="mb-8">
             <div
               onDrop={onDrop}
@@ -164,7 +215,7 @@ export default function DemoPage() {
 
               {file ? (
                 <div className="text-center">
-                  <p className="font-mono text-sm tracking-[0.1em] text-charcoal uppercase">
+                  <p className="font-mono text-sm tracking-widest text-charcoal uppercase">
                     {file.name}
                   </p>
                   <p className="text-charcoal/50 text-xs mt-2">
@@ -173,7 +224,7 @@ export default function DemoPage() {
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="font-mono text-sm tracking-[0.1em] text-charcoal/60 uppercase">
+                  <p className="font-mono text-sm tracking-widest text-charcoal/60 uppercase">
                     Drop file here or click to browse
                   </p>
                   <p className="text-charcoal/40 text-xs mt-3">
@@ -183,9 +234,9 @@ export default function DemoPage() {
               )}
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-3 mt-6">
               <button
+                type="button"
                 onClick={analyze}
                 disabled={!file || loading}
                 className={`
@@ -202,6 +253,7 @@ export default function DemoPage() {
               </button>
               {file && (
                 <button
+                  type="button"
                   onClick={reset}
                   className="font-mono text-xs tracking-[0.2em] uppercase px-6 py-3 border border-charcoal/40 text-charcoal/60 hover:text-charcoal transition-colors"
                 >
@@ -216,119 +268,77 @@ export default function DemoPage() {
               </p>
             )}
           </div>
-        )}
 
-        {/* Loading state */}
-        {loading && (
-          <div className="border border-charcoal/40 p-8 mb-8">
+          {loading && (
+            <div className="border border-charcoal/40 p-8">
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 border border-charcoal/40 animate-spin border-t-charcoal" />
+                <p className="font-mono text-xs tracking-widest text-charcoal/60 uppercase">
+                  Rendering views and classifying…
+                </p>
+              </div>
+              <p className="text-charcoal/40 text-xs mt-3">
+                This may take up to 30 seconds.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="w-full px-4 py-6 md:px-8 md:py-10">
+          <div
+            className={`mx-auto mb-8 flex max-w-6xl flex-wrap items-center justify-between gap-4 border border-charcoal/40 px-4 py-4 md:px-6 ${
+              isRestricted
+                ? "border-red-500/40 bg-red-500/5"
+                : "border-green-700/40 bg-green-700/5"
+            }`}
+          >
+            <div className="min-w-0">
+              <p className="truncate font-mono text-xs tracking-wide text-charcoal/55 uppercase">
+                {result!.filename}
+              </p>
+              <p className="font-mono text-sm text-charcoal mt-1 uppercase tracking-wide">
+                {result!.classification.label.replace(/_/g, " ")}
+              </p>
+            </div>
             <div className="flex items-center gap-3">
-              <div className="h-3 w-3 border border-charcoal/40 animate-spin" />
-              <p className="font-mono text-xs tracking-[0.1em] text-charcoal/60 uppercase">
-                Rendering views and classifying…
-              </p>
-            </div>
-            <p className="text-charcoal/40 text-xs mt-3">
-              This may take up to 30 seconds.
-            </p>
-          </div>
-        )}
-
-        {/* Results */}
-        {result && (
-          <div>
-            {/* Classification banner */}
-            <div
-              className={`border p-6 mb-8 ${
-                isRestricted
-                  ? "border-red-500 bg-red-500/5"
-                  : "border-green-600 bg-green-600/5"
-              }`}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-2">
-                    Classification
-                  </p>
-                  <p
-                    className={`font-mono text-lg tracking-[0.1em] uppercase ${
-                      isRestricted ? "text-red-600" : "text-green-700"
-                    }`}
-                  >
-                    {isRestricted ? (
-                      <><span className="text-red-600 font-bold">✕</span> Restricted</>
-                    ) : (
-                      <><span className="text-green-700 font-bold">✓</span> Allowed</>
-                    )}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-2">
-                    Confidence
-                  </p>
-                  <p className="font-mono text-lg text-charcoal">
-                    {(result.classification.confidence * 100).toFixed(0)}%
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-charcoal/70 text-sm mt-4 leading-relaxed">
-                {result.classification.summary}
-              </p>
-
-              {result.classification.reasons?.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {result.classification.reasons.map((r, i) => (
-                    <li
-                      key={i}
-                      className="text-charcoal/60 text-xs pl-4"
-                      style={{ listStyleType: "square" }}
-                    >
-                      {r}
-                    </li>
-                  ))}
-                </ul>
+              {insightsLoading && (
+                <span className="font-mono text-xs tracking-widest text-charcoal/50 uppercase animate-pulse">
+                  Collecting insights…
+                </span>
               )}
+              <button
+                type="button"
+                onClick={reset}
+                className="font-mono text-xs tracking-[0.2em] uppercase px-5 py-2.5 border border-charcoal/40 text-charcoal hover:bg-charcoal/5"
+              >
+                New file
+              </button>
             </div>
-
-            {/* 6 Views grid */}
-            <div className="mb-8">
-              <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-4">
-                Orthographic views , {result.filename}
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-charcoal/40">
-                {["front", "back", "left", "right", "top", "bottom"].map(
-                  (view) => (
-                    <div key={view} className="bg-white p-2">
-                      <p className="font-mono text-[10px] tracking-[0.2em] text-charcoal/40 uppercase mb-2">
-                        {view}
-                      </p>
-                      {result.views[view] ? (
-                        <img
-                          src={result.views[view]}
-                          alt={`${view} view`}
-                          className="w-full aspect-square object-contain"
-                        />
-                      ) : (
-                        <div className="w-full aspect-square bg-charcoal/5 flex items-center justify-center text-charcoal/30 text-xs">
-                          N/A
-                        </div>
-                      )}
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
-            {/* Reset */}
-            <button
-              onClick={reset}
-              className="font-mono text-xs tracking-[0.2em] uppercase px-6 py-3 border border-charcoal/40 text-charcoal/60 hover:text-charcoal transition-colors"
-            >
-              Analyze another file
-            </button>
           </div>
-        )}
-      </div>
+
+          <div className="mx-auto max-w-6xl">
+            {insights && (
+              <DemoInsightsPanel
+                insights={insights}
+                classification={result!.classification}
+                views={result!.views}
+                source={insightsSource}
+                warning={insightsWarning}
+              />
+            )}
+            {insightsLoading && !insights && (
+              <div className="flex min-h-[40vh] items-center justify-center border border-charcoal/40 p-12">
+                <div className="flex items-center gap-4">
+                  <div className="h-4 w-4 border-2 border-charcoal/30 animate-spin border-t-charcoal" />
+                  <p className="font-mono text-sm tracking-widest text-charcoal/55 uppercase">
+                    Building dashboard…
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

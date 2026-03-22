@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import re
 from PIL import Image
@@ -75,12 +76,13 @@ Return ONLY valid JSON with this schema:
 
     raw_text = getattr(response, "text", None)
 
-    print("\n=== RAW MODEL RESPONSE ===")
-    print(raw_text)
-    print("=== END RAW MODEL RESPONSE ===\n")
+    print("\n=== RAW MODEL RESPONSE ===", file=sys.stderr)
+    print(raw_text, file=sys.stderr)
+    print("=== END RAW MODEL RESPONSE ===\n", file=sys.stderr)
 
     return extract_json(raw_text)
 
 if __name__ == "__main__":
-    result = review_stl_views("renders")
+    renders_dir = sys.argv[1] if len(sys.argv) > 1 else "renders"
+    result = review_stl_views(renders_dir)
     print(json.dumps(result, indent=2))

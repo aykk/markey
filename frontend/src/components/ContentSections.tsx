@@ -195,7 +195,9 @@ export function ContentSections() {
                 Toolpath generation
               </h3>
               <p className="text-charcoal/80 leading-relaxed text-sm flex-1">
-                The slicer converts a CAD file or mesh into raw G-code.
+                The slicer converts a CAD file or mesh into raw G-code. Markey
+                ingests standard mesh formats (STL, OBJ, GLB) at the compliance
+                layer for vision analysis before export.
               </p>
             </div>
             <div className="flex flex-col">
@@ -219,12 +221,14 @@ export function ContentSections() {
                 Heuristic auditing
               </h3>
               <p className="text-charcoal/80 leading-relaxed text-sm flex-1">
-                An LLM analyzes the visual and spatial data to identify
-                restricted geometries. If a prohibited component is detected,
-                the system triggers a failsafe and halts the extrusion export.
+                Vision models and LLMs analyze renderings and spatial signals to
+                flag restricted geometries. When a prohibited component is
+                detected, policy enforcement halts extrusion export and surfaces
+                a clear verdict at the export gate.
               </p>
             </div>
           </div>
+
           <div className="mt-20">
             <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
               Why G-code
@@ -237,22 +241,106 @@ export function ContentSections() {
             </p>
           </div>
 
+          <div className="mt-20 border-t border-charcoal/30 pt-16">
+            <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
+              Between the slicer and the printer
+            </h3>
+            <p className="text-charcoal/85 leading-relaxed text-sm md:text-base mb-10">
+              We&apos;ve built Markey to sit in the handoff from{" "}
+              <strong className="font-medium text-charcoal">
+                design to manufacture
+              </strong>
+              : when a 3D model becomes print-ready instructions, when you
+              export from slicing software, or when a job is sent to a connected
+              printer. It reviews what the part looks like, checks the actual
+              print instructions (not just a pretty preview), and can stop a job
+              before those instructions reach the hardware. Teams keep using
+              their existing slicers and workflows; Markey is the checkpoint in
+              the middle.
+            </p>
+            <p className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
+              Other places it can plug in
+            </p>
+            <div className="space-y-8">
+              <div>
+                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
+                  Raspberry Pi setups (e.g. Klipper)
+                </h4>
+                <p className="text-charcoal/85 leading-relaxed text-sm">
+                  Many advanced setups already use a small computer (often a
+                  Raspberry Pi) to run the printer. Markey can live on that same
+                  machine: review or hold the print file before it is passed to the
+                  printer&apos;s own electronics. That can mean a check right
+                  before &quot;Print,&quot; a small add-on, or a folder that only
+                  releases approved jobs.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
+                  Wi-Fi, cloud, and networked queues
+                </h4>
+                <p className="text-charcoal/85 leading-relaxed text-sm">
+                  If jobs travel through a manufacturer&apos;s app, a company
+                  server, or a local network before they hit the printer, Markey
+                  can run on that path. The job is vetted while it is still
+                  digital, before motors turn. Compute stays on a normal server or
+                  office machine, not on the minimal chip inside the printer.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
+                  Resin, SLA, and industrial lines
+                </h4>
+                <p className="text-charcoal/85 leading-relaxed text-sm">
+                  Those ecosystems range from locked-down appliances to setups
+                  that already rely on a PC or plant software next to the machine.
+                  The idea stays the same: connect Markey where the print file
+                  already flows, and keep demanding image and policy work off the
+                  hardware whose job is mainly to move resin, light, or axes on
+                  schedule.
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-16">
             <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
               Features
             </h3>
-            <p className="text-charcoal/85 leading-relaxed mb-6">
-              Data visualizations include:
+            <p className="text-charcoal/85 leading-relaxed mb-4">
+              Classification &amp; vision:
+            </p>
+            <ul className="space-y-4 text-charcoal/85 leading-relaxed mb-10">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Label, confidence, natural-language summary, and model
+                reasoning
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Six orthographic renders (front, back, left, right, top,
+                bottom)
+              </li>
+            </ul>
+            <p className="text-charcoal/85 leading-relaxed mb-4">
+              Analyst dashboard:
             </p>
             <ul className="space-y-4 text-charcoal/85 leading-relaxed">
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Confidence values
+                Policy verdict (Restricted / Accepted / Review) with analyst
+                narrative and export-gate status
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Part it recognizes the object as
+                Risk index and classifier confidence bars
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Other parts it may recognize the object as
+                Alternate-hypothesis probabilities (horizontal bar chart)
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Per-view salience chart and matching emphasis on each
+                orthographic tile
+              </li>
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
+                Instrumented pipeline trace with per-step timings and analyst
+                insight bullets
               </li>
             </ul>
           </div>
