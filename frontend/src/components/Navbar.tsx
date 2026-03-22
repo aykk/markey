@@ -1,7 +1,6 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import Link from "next/link";
 
 function handleNavClick(
   e: MouseEvent<HTMLAnchorElement>,
@@ -34,14 +33,14 @@ export function Navbar() {
     <nav className="sticky top-0 z-30 flex items-center justify-center border-b border-charcoal/35 bg-off-white/90 px-6 py-5 shadow-[0_1px_0_0_rgba(54,69,79,0.06)] backdrop-blur-sm transition-[background-color,box-shadow,border-color] duration-500 ease-out md:px-10 supports-[backdrop-filter]:bg-off-white/80">
       <div className="hidden md:flex items-center gap-8 md:gap-12">
         {NAV_LINKS.map(({ href, label, scrollTop }) => (
-          <Link
+          <a
             key={label}
             href={href}
             onClick={(e) => handleNavClick(e, href, scrollTop)}
             className="font-mono text-xs tracking-[0.2em] uppercase text-charcoal/70 transition-colors duration-300 ease-out hover:text-charcoal"
           >
             {label}
-          </Link>
+          </a>
         ))}
       </div>
 
