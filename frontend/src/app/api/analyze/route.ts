@@ -3,6 +3,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { writeFile, readFile, mkdir, rm } from "fs/promises";
 import { join } from "path";
+import { tmpdir } from "os";
 import { randomUUID } from "crypto";
 
 const exec = promisify(execFile);
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sessionId = randomUUID();
-  const tmpDir = join("/tmp", "markey", sessionId);
+  const tmpDir = join(tmpdir(), "markey", sessionId);
   const rendersDir = join(tmpDir, "renders");
 
   try {
@@ -71,9 +72,15 @@ export async function POST(req: NextRequest) {
 
     let classification;
     try {
-      const jsonMatch = stdout.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error("No JSON object in output");
-      classification = JSON.parse(jsonMatch[0]);
+      const trimmed = stdout.trim();
+      // Prefer full stdout as JSON (gemini.py prints only json.dumps to stdout).
+      try {
+        classification = JSON.parse(trimmed);
+      } catch {
+        const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("No JSON object in output");
+        classification = JSON.parse(jsonMatch[0]);
+      }
     } catch {
       classification = {
         label: "unknown",
