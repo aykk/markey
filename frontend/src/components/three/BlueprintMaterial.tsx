@@ -44,7 +44,7 @@ const BLUEPRINT_PROPS = {
 } as const;
 
 /**
- * Single shared Three.js material matching {@link BlueprintMaterial} — use when
+ * Single shared Three.js material matching {@link BlueprintMaterial} , use when
  * applying the same wireframe to many meshes (e.g. GLTF) to avoid duplicate materials.
  */
 export function useBlueprintMaterial(): MeshStandardMaterial {

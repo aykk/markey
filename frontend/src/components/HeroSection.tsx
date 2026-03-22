@@ -68,7 +68,7 @@ export function HeroSection() {
       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-between px-6 md:px-12 pt-20 -translate-y-6">
         <div className="hidden md:block w-48 lg:w-56 text-left">
           <p className="font-mono text-xs tracking-[0.2em] text-charcoal/55 uppercase leading-relaxed">
-            Ghost guns are unserialized and untraceable—often made via 3D printing.
+            Ghost guns are unserialized and untraceable, often made via 3D printing.
           </p>
         </div>
         <div className="hidden md:block w-48 lg:w-56 text-right">

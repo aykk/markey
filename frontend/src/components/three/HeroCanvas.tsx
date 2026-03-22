@@ -6,12 +6,15 @@ import type { RefObject } from "react";
 import { Suspense, useEffect } from "react";
 import { DiagramGun } from "./DiagramGun";
 import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 export interface HeroCanvasProps {
   /** 0–1 progress driving exploded blueprint motion (e.g. from scroll) */
   exploded?: number;
-  /** @deprecated OrbitControls removed; no longer used */
-  controlsRef?: RefObject<{ dollyIn: (d?: number) => void; dollyOut: (d?: number) => void } | null>;
+  /** Ref to OrbitControls for programmatic zoom (e.g. UI buttons) */
+  controlsRef?: RefObject<OrbitControlsImpl | null>;
+  /** Orbit around target (e.g. pause/play in UI) */
+  autoRotate?: boolean;
 }
 
 const MODEL_CENTER: [number, number, number] = [1.1, 0.87, 0];
@@ -27,7 +30,11 @@ function FixedCamera() {
   return null;
 }
 
-export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
+export function HeroCanvas({
+  exploded = 0,
+  controlsRef,
+  autoRotate = true,
+}: HeroCanvasProps) {
   return (
     <Canvas
       className="h-full w-full"
@@ -51,10 +58,13 @@ export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
     >
       <FixedCamera />
       <OrbitControls
+        ref={controlsRef}
         target={MODEL_CENTER}
         enableZoom={false}
         enablePan={false}
-        autoRotate
+        minDistance={0.65}
+        maxDistance={5}
+        autoRotate={autoRotate}
         autoRotateSpeed={0.5}
       />
       <ambientLight intensity={0.92} />
@@ -77,7 +87,11 @@ export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
       />
 
       <Suspense fallback={null}>
-        <group position={MODEL_CENTER} scale={1.5}>
+        <group
+          position={MODEL_CENTER}
+          scale={1.5}
+          rotation={[0, Math.PI, 0]}
+        >
           <DiagramGun exploded={exploded} />
         </group>
       </Suspense>

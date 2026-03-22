@@ -12,7 +12,7 @@ import { useBlueprintMaterial } from "./BlueprintMaterial";
 
 useGLTF.preload("/diagramgun.glb");
 
-/** Exploded offsets (model space) — spread horizontally for landscape hero */
+/** Exploded offsets (model space) , spread horizontally for landscape hero */
 const EXPLODE = {
   barrel: { x: 0.12, y: 0, z: 0.06 },
   slide: { x: 0.08, y: 0.01, z: 0.08 },
@@ -72,7 +72,7 @@ export function DiagramGun({ exploded = 0, ...props }: DiagramGunProps) {
 
   return (
     <group {...props} dispose={null}>
-      {/* Receiver — frame, plug, trigger pack, cartridges, outline planes */}
+      {/* Receiver , frame, plug, trigger pack, cartridges, outline planes */}
       <ExplodedPart progress={exploded} axis={EXPLODE.receiver}>
         <MeshWire
           geometry={nodes["35_Plug_low"]!.geometry}

@@ -2,29 +2,62 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { HeroCanvas } from "@/components/three/HeroCanvas";
 
 const WHEEL_DELTA_PER_FULL = 800;
+const LOCK_DURATION = 500;
 
 export function ContextSection() {
-  const [explodeProgress, setExplodeProgress] = useState(1);
-  const accumulatedRef = useRef(WHEEL_DELTA_PER_FULL);
+  const [explodeProgress, setExplodeProgress] = useState(0);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const accumulatedRef = useRef(0);
+  const lockedUntilRef = useRef(0);
+  const orbitControlsRef = useRef<OrbitControlsImpl | null>(null);
+
+  const zoomIn = useCallback(() => {
+    const c = orbitControlsRef.current;
+    if (!c) return;
+    c.dollyIn(0.92);
+    c.update();
+  }, []);
+
+  const zoomOut = useCallback(() => {
+    const c = orbitControlsRef.current;
+    if (!c) return;
+    c.dollyOut(0.92);
+    c.update();
+  }, []);
 
   const onWheel = useCallback((e: WheelEvent) => {
     if (window.scrollY > 0) return;
 
-    const isFullyUnexploded = accumulatedRef.current === 0;
+    if (Date.now() < lockedUntilRef.current) {
+      e.preventDefault();
+      return;
+    }
+
+    const isFullyCollapsed = accumulatedRef.current === 0;
     const isFullyExploded = accumulatedRef.current === WHEEL_DELTA_PER_FULL;
 
-    if (isFullyUnexploded && e.deltaY > 0) return;
-    if (isFullyExploded && e.deltaY < 0) return;
+    // Collapsed + scroll up: nothing to do; let browser handle
+    if (isFullyCollapsed && e.deltaY < 0) return;
+    // Exploded + scroll down: advance the page
+    if (isFullyExploded && e.deltaY > 0) return;
 
     e.preventDefault();
+
+    const prev = accumulatedRef.current;
+    // Scroll down → explode; scroll up → collapse
     accumulatedRef.current = Math.max(
       0,
-      Math.min(WHEEL_DELTA_PER_FULL, accumulatedRef.current - e.deltaY)
+      Math.min(WHEEL_DELTA_PER_FULL, accumulatedRef.current + e.deltaY)
     );
     setExplodeProgress(accumulatedRef.current / WHEEL_DELTA_PER_FULL);
+
+    if (prev < WHEEL_DELTA_PER_FULL && accumulatedRef.current === WHEEL_DELTA_PER_FULL) {
+      lockedUntilRef.current = Date.now() + LOCK_DURATION;
+    }
   }, []);
 
   useEffect(() => {
@@ -36,19 +69,19 @@ export function ContextSection() {
   return (
     <section className="flex min-h-[calc(100dvh-52px)] w-full flex-col md:flex-row bg-off-white">
       <div className="flex w-full md:w-[45%] shrink-0 flex-col justify-center px-8 md:px-10 lg:px-12 py-12 md:py-16">
-        <h1 className="font-mono text-2xl md:text-3xl lg:text-4xl tracking-[0.12em] text-charcoal uppercase leading-[1.3]">
-          3D printed firearms<br />are a <em className="italic">growing problem.</em>
+        <h1 className="font-[family-name:var(--font-ibm-plex-mono)] text-3xl md:text-4xl lg:text-5xl tracking-tight text-charcoal leading-[1.25]">
+          3D printed firearms<br />are a <strong className="font-bold">growing problem.</strong>
         </h1>
-        <p className="mt-8 text-charcoal/85 text-base md:text-lg leading-relaxed max-w-lg">
+        <p className="mt-8 font-mono text-charcoal/85 text-sm tracking-[0.15em] uppercase leading-relaxed">
           In 2026, laws have been passed in Colorado, California, and New York to restrict this, but <strong className="font-semibold text-charcoal">little to no software exists</strong> to enforce it.
         </p>
 
-        <ul className="mt-10 space-y-5">
-          <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/70 font-mono text-xs tracking-[0.18em] text-charcoal/80 uppercase leading-relaxed">
-            Ghost guns are <em className="not-italic font-bold text-charcoal">unserialized and untraceable,</em> often made via 3D printing.
+        <ul className="mt-10 list-disc list-outside space-y-4 pl-5 marker:text-charcoal/40">
+          <li className="font-sans text-sm text-charcoal/65 leading-relaxed pl-1">
+            Ghost guns are <strong className="font-medium text-charcoal/90">unserialized and untraceable,</strong> often made via 3D printing.
           </li>
-          <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/70 font-mono text-xs tracking-[0.18em] text-charcoal/80 uppercase leading-relaxed">
-            As of now, 3D printers have no guardrails. <em className="not-italic font-bold text-charcoal">Virtually no software can detect or block prohibited blueprints.</em>
+          <li className="font-sans text-sm text-charcoal/65 leading-relaxed pl-1">
+            As of now, 3D printers have no guardrails. <strong className="font-medium text-charcoal/90">Virtually no software can detect or block prohibited blueprints.</strong>
           </li>
         </ul>
 
@@ -73,11 +106,41 @@ className="font-mono text-xs tracking-[0.2em] uppercase text-charcoal border bor
       </div>
 
       <div className="relative flex-1 min-h-[320px] md:min-h-0 border-t md:border-t-0 md:border-l border-charcoal/40 overflow-hidden bg-black">
-        <span className="absolute bottom-3 right-3 z-10 font-mono text-[10px] tracking-[0.3em] text-white uppercase select-none">
+        <button
+          type="button"
+          onClick={() => setAutoRotate((v) => !v)}
+          aria-label={autoRotate ? "Pause rotation" : "Play rotation"}
+          className="absolute top-4 right-4 z-10 font-mono text-xs tracking-[0.15em] uppercase text-white border border-white/40 px-3 py-2 hover:bg-white/10 transition-colors select-none"
+        >
+          {autoRotate ? "Pause" : "Play"}
+        </button>
+        <div className="absolute bottom-4 left-4 z-10 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={zoomIn}
+            aria-label="Zoom in"
+            className="font-mono text-xs tracking-[0.15em] uppercase text-white border border-white/40 px-3 py-2 hover:bg-white/10 transition-colors select-none"
+          >
+            Zoom in
+          </button>
+          <button
+            type="button"
+            onClick={zoomOut}
+            aria-label="Zoom out"
+            className="font-mono text-xs tracking-[0.15em] uppercase text-white border border-white/40 px-3 py-2 hover:bg-white/10 transition-colors select-none"
+          >
+            Zoom out
+          </button>
+        </div>
+        <span className="absolute bottom-4 right-4 z-10 font-mono text-sm tracking-[0.3em] text-white uppercase select-none">
           Fig. 01
         </span>
         <div className="absolute inset-0">
-          <HeroCanvas exploded={explodeProgress} />
+          <HeroCanvas
+            exploded={explodeProgress}
+            controlsRef={orbitControlsRef}
+            autoRotate={autoRotate}
+          />
         </div>
       </div>
     </section>

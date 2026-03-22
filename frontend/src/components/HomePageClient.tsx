@@ -63,7 +63,7 @@ export function HomePageClient() {
                 don&apos;t resemble gun parts.
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
-                There are no guardrails—anyone, including hobbyists, can print a
+                There are no guardrails, anyone, including hobbyists, can print a
                 gun.
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
@@ -136,8 +136,8 @@ export function HomePageClient() {
             </h2>
             <p className="text-charcoal/85 leading-relaxed">
               Markey analyzes G-code directly instead of visualizations. This
-              prevents workarounds—such as enclosing restricted parts in a box
-              to conceal the interior—since the toolpaths themselves are
+              prevents workarounds, such as enclosing restricted parts in a box
+              to conceal the interior, since the toolpaths themselves are
               audited.
             </p>
           </section>
@@ -150,13 +150,13 @@ export function HomePageClient() {
               Data visualizations include:
             </p>
             <ul className="space-y-2 text-charcoal/85 leading-relaxed text-sm">
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
                 Confidence values
               </li>
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
                 Part it recognizes the object as
               </li>
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[', '] before:absolute before:left-0 before:text-charcoal/50">
                 Other parts it may recognize the object as
               </li>
             </ul>

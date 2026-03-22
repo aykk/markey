@@ -1,23 +1,30 @@
 "use client";
 
 import { useRef } from "react";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { HeroCanvas } from "@/components/three/HeroCanvas";
 
-const ZOOM_STEP = 0.3;
+const DOLLY_SCALE = 0.92;
 
 /**
  * Gun model panel for split-screen layout.
  * @param exploded 0–1: 0 = collapsed/assembled, 1 = fully exploded
  */
 export function GunPanel({ exploded = 0 }: { exploded?: number }) {
-  const controlsRef = useRef<{ dollyIn: (d?: number) => void; dollyOut: (d?: number) => void } | null>(null);
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   const zoomIn = () => {
-    controlsRef.current?.dollyIn(ZOOM_STEP);
+    const c = controlsRef.current;
+    if (!c) return;
+    c.dollyIn(DOLLY_SCALE);
+    c.update();
   };
 
   const zoomOut = () => {
-    controlsRef.current?.dollyOut(ZOOM_STEP);
+    const c = controlsRef.current;
+    if (!c) return;
+    c.dollyOut(DOLLY_SCALE);
+    c.update();
   };
 
   return (
