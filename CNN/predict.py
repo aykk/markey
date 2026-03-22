@@ -31,4 +31,4 @@ def main():
     print("Prediction:", "gun" if prob >= 0.5 else "non_gun")
 
 if __name__ == "__main__":
-    main()
+    main()  

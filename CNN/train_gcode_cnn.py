@@ -1,13 +1,16 @@
 import os
-import re
 import random
 from collections import Counter
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, random_split
 
-TRAIN_DIR = "dataset/train"
-VAL_DIR = "dataset/val"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_ROOT = os.path.abspath(os.path.join(BASE_DIR, "..", "customModel", "data-prep"))
+
+NON_GUN_DIR = os.path.join(DATA_ROOT, "g-code-non-gun")
+GUN_DIR = os.path.join(DATA_ROOT, "g-code-spliced")
 
 MAX_LEN = 4000
 BATCH_SIZE = 16
@@ -15,6 +18,7 @@ EMBED_DIM = 64
 NUM_EPOCHS = 10
 LR = 1e-3
 SEED = 42
+VAL_SPLIT = 0.2
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -84,22 +88,19 @@ def encode_tokens(tokens, vocab, max_len):
         ids = ids + [vocab[PAD_TOKEN]] * (max_len - len(ids))
     return ids
 
-def collect_paths_and_labels(root_dir):
-    """
-    Expects:
-      root_dir/non_gun/*.gcode
-      root_dir/gun/*.gcode
-    """
+def collect_paths_and_labels():
     samples = []
 
-    class_map = {
-        "non_gun": 0,
-        "gun": 1
-    }
+    class_dirs = [
+        (NON_GUN_DIR, 0),
+        (GUN_DIR, 1),
+    ]
 
-    for class_name, label in class_map.items():
-        class_dir = os.path.join(root_dir, class_name)
+    for class_dir, label in class_dirs:
+        print(f"Checking: {class_dir}")
+
         if not os.path.isdir(class_dir):
+            print(f"Missing directory: {class_dir}")
             continue
 
         for fname in os.listdir(class_dir):
@@ -228,8 +229,17 @@ def run_epoch(model, loader, criterion, optimizer=None):
     }
 
 def main():
-    train_samples = collect_paths_and_labels(TRAIN_DIR)
-    val_samples = collect_paths_and_labels(VAL_DIR)
+    all_samples = collect_paths_and_labels()
+    print(f"Total samples found: {len(all_samples)}")
+
+    if len(all_samples) == 0:
+        raise ValueError("No .gcode files found. Check DATA_ROOT and folder names.")
+
+    random.shuffle(all_samples)
+
+    split_idx = int((1.0 - VAL_SPLIT) * len(all_samples))
+    train_samples = all_samples[:split_idx]
+    val_samples = all_samples[split_idx:]
 
     print(f"Train samples: {len(train_samples)}")
     print(f"Val samples:   {len(val_samples)}")
@@ -240,6 +250,11 @@ def main():
 
     train_dataset = GCodeDataset(train_samples, vocab, MAX_LEN)
     val_dataset = GCodeDataset(val_samples, vocab, MAX_LEN)
+
+    if len(train_dataset) == 0:
+        raise ValueError("Training dataset is empty.")
+    if len(val_dataset) == 0:
+        raise ValueError("Validation dataset is empty.")
 
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False)
