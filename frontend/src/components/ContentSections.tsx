@@ -2,177 +2,245 @@ import Link from "next/link";
 
 const labelClass =
   "font-mono text-[10px] md:text-xs tracking-[0.28em] text-charcoal/55 uppercase";
+/** Light gray band behind section eyebrows and key phrases */
+const sectionHighlightClass =
+  "rounded-sm bg-charcoal/[0.09] px-3 py-1 md:px-3.5 md:py-1 transition-colors duration-300 ease-out hover:bg-charcoal/15";
+/** Cards / panels: smooth border, shadow, background */
+const panelMotion =
+  "transition-[border-color,box-shadow,background-color] duration-500 ease-out";
 const blockHeadingClass =
   "font-mono text-[10px] md:text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-3";
+/** Step index + title for narrative cells */
+const narrativeStepClass =
+  "mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal";
+const narrativeStepNumClass =
+  "shrink-0 tabular-nums text-charcoal/40 tracking-[0.25em]";
 const bodyClass = "font-sans text-sm text-charcoal/75 leading-relaxed";
 const bodyStrong = "font-medium text-charcoal";
 
 export function ContentSections() {
   return (
-    <div className="bg-off-white">
-      {/* Context + problem (side by side) → solution */}
+    <div className="bg-off-white pt-12 md:pt-16 lg:pt-20">
+      {/* Context: narrative → constraints → vocabulary → project */}
       <section
         id="what-is-markey"
         className="flex w-full min-h-0 flex-col border-t border-charcoal/40"
       >
-        {/* Context + The problem (side by side on large screens) */}
-        <div className="w-full px-8 py-16 md:px-10 lg:px-12 xl:px-16">
-          <div className="mx-auto w-full max-w-7xl">
-            <p className={`${labelClass} mb-10`}>Context</p>
+        <div className="w-full bg-charcoal/[0.025]">
+          <div className="mx-auto w-full max-w-7xl px-8 pt-16 pb-10 md:px-10 md:pt-20 md:pb-12 lg:px-12 lg:pt-24 lg:pb-14 xl:px-16">
+            <header className="mb-6 border-b border-charcoal/15 pb-6 md:mb-7 md:pb-7">
+              <p className="mb-5 md:mb-6">
+                <span className={`${labelClass} ${sectionHighlightClass}`}>
+                  Context
+                </span>
+              </p>
+              <p className="max-w-3xl font-sans text-sm leading-relaxed text-charcoal/80 md:text-[0.9375rem]">
+                Slicers turn meshes into G-code without knowing what they
+                represent, so risk concentrates at that handoff, and regulation
+                is catching up.
+              </p>
+            </header>
 
-            <div className="flex flex-col gap-10 lg:flex-row lg:items-stretch lg:gap-0">
-              {/* Left: key terms + three narrative cells */}
-              <div className="flex min-w-0 flex-1 flex-col lg:pr-10 xl:pr-12">
-                <div className="border border-charcoal/40 bg-off-white p-6 md:p-8">
-                  <h3 className={blockHeadingClass}>Key terms</h3>
-                  <ul className="list-disc list-outside space-y-4 pl-5 marker:text-charcoal/35">
-                    <li className={`${bodyClass} pl-1`}>
-                      <span className="font-mono text-xs tracking-wide text-charcoal uppercase">
-                        Slicer
-                      </span>
-                      , Software that converts 3D models into print instructions;
-                      the bridge between design and manufacture.
-                    </li>
-                    <li className={`${bodyClass} pl-1`}>
-                      <span className="font-mono text-xs tracking-wide text-charcoal uppercase">
-                        G-code
-                      </span>
-                      , The machine instruction language that tells 3D printers
-                      exactly where to move and how much material to extrude.
-                    </li>
-                    <li className={`${bodyClass} pl-1`}>
-                      <span className="font-mono text-xs tracking-wide text-charcoal uppercase">
-                        Mesh
-                      </span>
-                      , A 3D model made of vertices and triangles; the input format
-                      slicers consume before producing G-code.
-                    </li>
-                  </ul>
+            {/* 1, Narrative arc */}
+            <div
+              className="mb-6 md:mb-7"
+              aria-label="Context narrative: blind spot, misuse, regulation"
+            >
+              <p className="font-mono text-xs md:text-sm font-semibold tracking-[0.28em] text-charcoal uppercase mb-3">
+                <span className="text-charcoal/45">1</span>, Relevant information
+              </p>
+              <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-3">
+                <div
+                  className={`border-b border-charcoal/40 bg-off-white px-5 py-5 md:border-b-0 md:border-r md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}
+                >
+                  <h3 className={narrativeStepClass}>
+                    <span className={narrativeStepNumClass} aria-hidden>
+                      01
+                    </span>
+                    <span>The blind spot</span>
+                  </h3>
+                  <p className={bodyClass}>
+                    Meshes become G-code with{" "}
+                    <em className="italic text-charcoal/90">
+                      no semantic read
+                    </em>{" "}
+                    on the part, no built-in detection or compliance at the
+                    boundary.{" "}
+                    <span className="underline decoration-charcoal/40 underline-offset-[3px]">
+                      Blind translation
+                    </span>{" "}
+                    is increasingly a legal and safety problem.
+                  </p>
                 </div>
-
-                <div className="mt-10 grid gap-0 border border-charcoal/40 md:grid-cols-3">
-                  <div className="border-b border-charcoal/40 p-6 md:border-b-0 md:border-r md:p-8">
-                    <h3 className={blockHeadingClass}>The blind spot</h3>
-                    <p className={bodyClass}>
-                      Slicers translate meshes to G-code with{" "}
-                      <em className="italic text-charcoal/90">
-                        zero understanding
-                      </em>{" "}
-                      of what they&apos;re printing. No detection. No compliance.
-                      Just{" "}
-                      <span className="underline decoration-charcoal/40 underline-offset-[3px]">
-                        blind translation
-                      </span>
-                      , and in 2026, that&apos;s a liability.
-                    </p>
-                  </div>
-                  <div className="border-b border-charcoal/40 p-6 md:border-b-0 md:border-r md:p-8">
-                    <h3 className={blockHeadingClass}>Ghost guns</h3>
-                    <p className={bodyClass}>
-                      Unserialized, untraceable firearms, increasingly made via
-                      3D printing. They bypass background checks. Slicers{" "}
-                      <em className="italic text-charcoal/90">
-                        cannot tell a toy from a receiver.
-                      </em>
-                    </p>
-                  </div>
-                  <div className="p-6 md:p-8">
-                    <h3 className={blockHeadingClass}>2026 regulations</h3>
-                    <p className={bodyClass}>
-                      Colorado criminalizes 3D printing firearms and parts.
-                      California requires printers to block gun files by 2029.
-                      New York has proposed similar mandates. Fines up to{" "}
-                      <strong className={bodyStrong}>
-                        $25,000 per violation.
-                      </strong>{" "}
-                      None of that works unless enforcement lives{" "}
-                      <strong className={bodyStrong}>inside the slicer</strong>,
-                      where meshes become G-code.
-                    </p>
-                  </div>
+                <div
+                  className={`border-b border-charcoal/40 bg-off-white px-5 py-5 md:border-b-0 md:border-r md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}
+                >
+                  <h3 className={narrativeStepClass}>
+                    <span className={narrativeStepNumClass} aria-hidden>
+                      02
+                    </span>
+                    <span>Ghost guns</span>
+                  </h3>
+                  <p className={bodyClass}>
+                    Unserialized parts and firearms from desktop printing bypass
+                    ordinary checks. Today&apos;s slicers{" "}
+                    <em className="italic text-charcoal/90">
+                      cannot tell benign geometry from regulated hardware.
+                    </em>
+                  </p>
+                </div>
+                <div
+                  className={`bg-off-white px-5 py-5 md:px-6 md:py-6 ${panelMotion} hover:bg-charcoal/[0.03]`}
+                >
+                  <h3 className={narrativeStepClass}>
+                    <span className={narrativeStepNumClass} aria-hidden>
+                      03
+                    </span>
+                    <span>2026 regulations</span>
+                  </h3>
+                  <p className={bodyClass}>
+                    States are moving: Colorado, California (printer blocks by
+                    2029), New York-style proposals. Penalties reach{" "}
+                    <strong className={bodyStrong}>
+                      $25,000 per violation
+                    </strong>
+                    . Policy only bites if the check sits{" "}
+                    <strong className={bodyStrong}>
+                      where mesh becomes G-code
+                    </strong>
+                    , inside or against the slicer path.
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Right: The problem */}
-              <aside className="flex w-full shrink-0 flex-col border-t border-charcoal/40 pt-10 lg:w-[min(100%,380px)] lg:border-l lg:border-t-0 lg:border-charcoal/40 lg:pl-10 lg:pt-0 xl:w-[400px] xl:pl-12">
-                <div className="flex min-h-0 flex-1 flex-col border border-charcoal bg-black px-6 py-8 md:px-8 md:py-10 lg:min-h-full">
-                  <h3 className="font-mono text-[10px] md:text-xs tracking-[0.2em] text-white/50 uppercase mb-6">
-                    The problem
-                  </h3>
-                  <ul className="space-y-5 font-sans text-sm text-off-white/80 leading-relaxed">
-                    <li className="flex gap-3">
-                      <span
-                        className="mt-2 h-1 w-1 shrink-0 bg-white/50"
-                        aria-hidden
-                      />
-                      <span>
-                        Slicers need analysis of object files and G-code to
-                        ensure they don&apos;t resemble gun parts.
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span
-                        className="mt-2 h-1 w-1 shrink-0 bg-white/50"
-                        aria-hidden
-                      />
-                      <span>
-                        There are no guardrails, anyone, including hobbyists, can
-                        print a gun.
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span
-                        className="mt-2 h-1 w-1 shrink-0 bg-white/50"
-                        aria-hidden
-                      />
-                      <span>
-                        Ghost guns and ghost gun parts are designed to look like
-                        normal parts, such as industrial brackets.
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span
-                        className="mt-2 h-1 w-1 shrink-0 bg-white/50"
-                        aria-hidden
-                      />
-                      <span>
-                        There are no working implementations that restrict
-                        G-code to prevent malicious use.
-                      </span>
-                    </li>
-                    <li className="flex gap-3">
-                      <span
-                        className="mt-2 h-1 w-1 shrink-0 bg-white/50"
-                        aria-hidden
-                      />
-                      <span>
-                        The goal is to defer and discourage people from printing
-                        guns.
-                      </span>
-                    </li>
-                  </ul>
-                </div>
-              </aside>
+            {/* 2, Constraints this project responds to */}
+            <div className="mb-6 border-t border-charcoal/20 pt-6 md:mb-7 md:pt-7">
+              <p className="font-mono text-xs md:text-sm font-semibold tracking-[0.28em] text-charcoal uppercase mb-4">
+                <span className="text-charcoal/45">2</span>, Where things stand
+              </p>
+              <ul className="max-w-3xl list-disc list-outside space-y-3 pl-5 marker:text-charcoal/40">
+                <li className={`${bodyClass} pl-2`}>
+                  Few real integrations stop malicious G-code at the source;
+                  mesh-to-toolpath remains largely ungoverned.
+                </li>
+                <li className={`${bodyClass} pl-2`}>
+                  This project aims to add friction: make unregistered firearm
+                  prints harder, not invisible.
+                </li>
+              </ul>
+            </div>
+
+            <div className="border-t border-charcoal/20 pt-8 md:pt-9">
+              <div
+                className={`max-w-3xl border border-charcoal/40 bg-off-white px-5 py-6 md:px-6 md:py-8 ${panelMotion} hover:border-charcoal/50`}
+              >
+                <h3 className="font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal mb-5">Key terms</h3>
+                <ul className="list-none space-y-5 pl-0">
+                  <li className={`${bodyClass} pl-0`}>
+                    <span className="block font-mono text-sm md:text-base font-bold tracking-wide text-charcoal uppercase mb-1">
+                      Slicer
+                    </span>
+                    3D model to print instructions; the usual last software
+                    stop before the machine.
+                  </li>
+                  <li className={`${bodyClass} pl-0`}>
+                    <span className="block font-mono text-sm md:text-base font-bold tracking-wide text-charcoal uppercase mb-1">
+                      G-code
+                    </span>
+                    Low-level moves and extrusion the printer executes.
+                  </li>
+                  <li className={`${bodyClass} pl-0`}>
+                    <span className="block font-mono text-sm md:text-base font-bold tracking-wide text-charcoal uppercase mb-1">
+                      Mesh
+                    </span>
+                    Triangle soup (STL/OBJ/GLB) the slicer ingests before
+                    G-code.
+                  </li>
+                </ul>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* The solution */}
-        <div className="w-full border-t border-charcoal/40 px-8 py-16 md:px-10 md:py-20 lg:px-12 xl:px-16">
-          <div className="mx-auto w-full max-w-5xl">
-            <p className={`${labelClass} mb-8`}>The solution</p>
-            <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-3xl md:text-4xl tracking-tight text-charcoal leading-tight">
-              Markey*
-            </h2>
-            <p className="mt-8 font-mono text-sm tracking-[0.12em] text-charcoal/80 uppercase leading-relaxed max-w-md">
-              An ML-powered identification and restriction layer within your
-              slicer.
+        {/* Project summary, same surface as page, full viewport min height */}
+        <div className="flex min-h-dvh w-full flex-col justify-center border-t border-charcoal/40 bg-off-white px-8 py-20 md:px-10 md:py-24 lg:px-12 lg:py-28 xl:px-16">
+          <div className="mx-auto w-full max-w-6xl">
+            <p className="mb-6 md:mb-8">
+              <span
+                className={`font-mono text-[10px] md:text-xs tracking-[0.35em] text-charcoal/50 uppercase ${sectionHighlightClass}`}
+              >
+                The project
+              </span>
             </p>
 
-            <p className="mt-12 font-sans text-sm text-charcoal/65 leading-relaxed border-t border-charcoal/40 pt-8">
-              <span className="font-mono text-charcoal/80">*</span>
-              Markey is named after Senator Ed Markey, who has championed
-              legislation to ban 3D-printed guns for over a decade.
+            <div className="max-w-4xl">
+              <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-4xl sm:text-5xl md:text-6xl lg:text-[3.5rem] xl:text-7xl font-semibold tracking-tight text-charcoal leading-[1.05]">
+                Markey
+                <sup className="ml-0.5 align-super text-[0.35em] font-normal text-charcoal/45">
+                  *
+                </sup>
+              </h2>
+            </div>
+
+            <div className="mt-10 md:mt-12 max-w-2xl space-y-5">
+              <p className="font-sans text-lg md:text-xl font-medium leading-snug text-charcoal tracking-tight">
+                The ML-powered firearm identification and restriction layer for
+                slicer softwares.
+              </p>
+              <p className="font-sans text-base md:text-lg text-charcoal/75 leading-relaxed">
+                Markey classifies printable geometry at the mesh stage and
+                surfaces a policy signal, confidence, alternates, and
+                explainability, so high-risk jobs can be held or blocked before
+                G-code is committed.
+              </p>
+            </div>
+
+            <div className="mt-16 md:mt-20 grid gap-10 border-t border-charcoal/15 pt-14 md:grid-cols-3 md:gap-8 lg:gap-12">
+              <div className="md:pr-4">
+                <p className="font-mono text-xs tracking-[0.3em] text-charcoal/40 uppercase mb-3">
+                  01
+                </p>
+                <h3 className="font-mono text-sm md:text-base tracking-[0.2em] text-charcoal uppercase mb-3">
+                  Renders + classify
+                </h3>
+                <p className="font-sans text-sm text-charcoal/70 leading-relaxed">
+                  Consistent renders from the mesh feed a single classification
+                  pass, repeatable, auditable inputs.
+                </p>
+              </div>
+              <div className="md:border-l md:border-charcoal/15 md:pl-8 lg:pl-10">
+                <p className="font-mono text-xs tracking-[0.3em] text-charcoal/40 uppercase mb-3">
+                  02
+                </p>
+                <h3 className="font-mono text-sm md:text-base tracking-[0.2em] text-charcoal uppercase mb-3">
+                  Where it plugs in
+                </h3>
+                <p className="font-sans text-sm text-charcoal/70 leading-relaxed">
+                  Hooks at export, queue, or pre-print, anywhere a mesh exists but
+                  G-code is not yet final.
+                </p>
+              </div>
+              <div className="md:border-l md:border-charcoal/15 md:pl-8 lg:pl-10">
+                <p className="font-mono text-xs tracking-[0.3em] text-charcoal/40 uppercase mb-3">
+                  03
+                </p>
+                <h3 className="font-mono text-sm md:text-base tracking-[0.2em] text-charcoal uppercase mb-3">
+                  Dashboard
+                </h3>
+                <p className="font-sans text-sm text-charcoal/70 leading-relaxed">
+                  Operators see verdict, uncertainty, and which evidence drove
+                  it, enough to intervene without digging through logs.
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-16 md:mt-20 max-w-2xl border-t border-charcoal/15 pt-10 font-sans text-sm leading-relaxed text-charcoal/55 transition-colors duration-500 ease-out hover:text-charcoal/70">
+              <span className="font-mono text-charcoal/70">*</span>{" "}
+              <span className="text-charcoal/60">
+                Named for Senator Ed Markey, who has pushed legislation on
+                3D-printed guns for years.
+              </span>
             </p>
           </div>
         </div>
@@ -180,213 +248,223 @@ export function ContentSections() {
 
       <section
         id="how-it-works"
-        className="flex min-h-dvh flex-col justify-center border-t border-charcoal/40 px-8 py-20 md:px-12 md:py-28 lg:px-16"
+        className="flex min-h-dvh flex-col justify-center border-t border-charcoal/40 bg-off-white px-8 py-20 md:px-12 md:py-28 lg:px-16"
       >
         <div className="mx-auto w-full max-w-4xl">
-          <p className="font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase mb-16">
-            How it works
+          <p className="mb-16">
+            <span
+              className={`font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase ${sectionHighlightClass}`}
+            >
+              How it works
+            </span>
           </p>
-          <div className="grid md:grid-cols-3 gap-12 md:gap-16">
-            <div className="flex flex-col">
-              <span className="font-mono text-sm tracking-widest text-charcoal/50 mb-4">
+
+          {/* Pipeline steps */}
+          <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-3">
+            <div
+              className={`border-b border-charcoal/40 px-6 py-6 md:border-b-0 md:border-r md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+            >
+              <span className="block font-mono text-sm tracking-widest text-charcoal/40 mb-2">
                 01
               </span>
-              <h3 className="font-mono text-base tracking-[0.2em] text-charcoal uppercase mb-4">
-                Toolpath generation
+              <h3 className="font-mono text-sm md:text-base font-semibold tracking-[0.2em] text-charcoal uppercase mb-3">
+                Mesh in
               </h3>
-              <p className="text-charcoal/80 leading-relaxed text-sm flex-1">
-                The slicer converts a CAD file or mesh into raw G-code. Markey
-                ingests standard mesh formats (STL, OBJ, GLB) at the compliance
-                layer for vision analysis before export.
+              <p className="text-charcoal/75 leading-relaxed text-sm">
+                Standard formats: STL, OBJ, GLB. The slicer UI is unchanged;
+                this runs on the file.
               </p>
             </div>
-            <div className="flex flex-col">
-              <span className="font-mono text-sm tracking-widest text-charcoal/50 mb-4">
+            <div
+              className={`border-b border-charcoal/40 px-6 py-6 md:border-b-0 md:border-r md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+            >
+              <span className="block font-mono text-sm tracking-widest text-charcoal/40 mb-2">
                 02
               </span>
-              <h3 className="font-mono text-base tracking-[0.2em] text-charcoal uppercase mb-4">
-                Spatial mapping
+              <h3 className="font-mono text-sm md:text-base font-semibold tracking-[0.2em] text-charcoal uppercase mb-3">
+                Views + model
               </h3>
-              <p className="text-charcoal/80 leading-relaxed text-sm flex-1">
-                An OpenGL visualizer intercepts the G-code and renders the
-                physical toolpaths, giving the software eyes to understand the
-                geometry being printed.
+              <p className="text-charcoal/75 leading-relaxed text-sm">
+                Fixed views of the part are rendered, then passed to the
+                classifier.
               </p>
             </div>
-            <div className="flex flex-col">
-              <span className="font-mono text-sm tracking-widest text-charcoal/50 mb-4">
+            <div
+              className={`px-6 py-6 md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+            >
+              <span className="block font-mono text-sm tracking-widest text-charcoal/40 mb-2">
                 03
               </span>
-              <h3 className="font-mono text-base tracking-[0.2em] text-charcoal uppercase mb-4">
-                Heuristic auditing
+              <h3 className="font-mono text-sm md:text-base font-semibold tracking-[0.2em] text-charcoal uppercase mb-3">
+                Dashboard
               </h3>
-              <p className="text-charcoal/80 leading-relaxed text-sm flex-1">
-                Vision models and LLMs analyze renderings and spatial signals to
-                flag restricted geometries. When a prohibited component is
-                detected, policy enforcement halts extrusion export and surfaces
-                a clear verdict at the export gate.
+              <p className="text-charcoal/75 leading-relaxed text-sm">
+                Label, confidence, alternate guesses, and which views mattered.
+                Review or stop before print instructions go out.
               </p>
             </div>
           </div>
 
-          <div className="mt-20">
-            <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
-              Why G-code
+          {/* G-code */}
+          <div className="mt-16 border-t border-charcoal/20 pt-12">
+            <h3 className="mb-4 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
+              G-code
             </h3>
-            <p className="text-charcoal/85 leading-relaxed">
-              Markey analyzes G-code directly instead of visualizations. This
-              prevents workarounds, such as enclosing restricted parts in a box
-              to conceal the interior, since the toolpaths themselves are
-              audited.
+            <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm">
+              Mesh-only checks don&apos;t catch everything, for example geometry
+              hidden inside a shell can show up differently in toolpaths. This
+              prototype is about the mesh and the handoff before print; G-code
+              is a related, separate problem.
             </p>
           </div>
 
-          <div className="mt-20 border-t border-charcoal/30 pt-16">
-            <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
+          {/* Integration point */}
+          <div className="mt-16 border-t border-charcoal/20 pt-12">
+            <h3 className="mb-4 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
               Between the slicer and the printer
             </h3>
-            <p className="text-charcoal/85 leading-relaxed text-sm md:text-base mb-10">
-              We&apos;ve built Markey to sit in the handoff from{" "}
-              <strong className="font-medium text-charcoal">
-                design to manufacture
-              </strong>
-              : when a 3D model becomes print-ready instructions, when you
-              export from slicing software, or when a job is sent to a connected
-              printer. It reviews what the part looks like, checks the actual
-              print instructions (not just a pretty preview), and can stop a job
-              before those instructions reach the hardware. Teams keep using
-              their existing slicers and workflows; Markey is the checkpoint in
-              the middle.
+            <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base">
+              The aim is the gap between slicing and the printer: after you have
+              a part file, before motors run. The interesting part is the file
+              and when it meets hardware.
             </p>
-            <p className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
+          </div>
+
+          {/* Integration targets */}
+          <div className="mt-16 border-t border-charcoal/20 pt-12">
+            <h3 className="mb-8 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
               Other places it can plug in
-            </p>
-            <div className="space-y-8">
-              <div>
-                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
-                  Raspberry Pi setups (e.g. Klipper)
+            </h3>
+            <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-3">
+              <div
+                className={`border-b border-charcoal/40 px-6 py-6 md:border-b-0 md:border-r md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+              >
+                <h4 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Raspberry Pi (Klipper)
                 </h4>
-                <p className="text-charcoal/85 leading-relaxed text-sm">
-                  Many advanced setups already use a small computer (often a
-                  Raspberry Pi) to run the printer. Markey can live on that same
-                  machine: review or hold the print file before it is passed to the
-                  printer&apos;s own electronics. That can mean a check right
-                  before &quot;Print,&quot; a small add-on, or a folder that only
-                  releases approved jobs.
+                <p className="text-charcoal/75 leading-relaxed text-sm">
+                  Many setups already use a small computer to run the printer. A
+                  check could sit on that box before the file reaches the
+                  printer board, last mile before print.
                 </p>
               </div>
-              <div>
-                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
-                  Wi-Fi, cloud, and networked queues
+              <div
+                className={`border-b border-charcoal/40 px-6 py-6 md:border-b-0 md:border-r md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+              >
+                <h4 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Cloud + networked queues
                 </h4>
-                <p className="text-charcoal/85 leading-relaxed text-sm">
-                  If jobs travel through a manufacturer&apos;s app, a company
-                  server, or a local network before they hit the printer, Markey
-                  can run on that path. The job is vetted while it is still
-                  digital, before motors turn. Compute stays on a normal server or
-                  office machine, not on the minimal chip inside the printer.
+                <p className="text-charcoal/75 leading-relaxed text-sm">
+                  If jobs go through an app, server, or LAN before the printer,
+                  the same idea applies: inspect while it&apos;s still digital.
                 </p>
               </div>
-              <div>
-                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
-                  Resin, SLA, and industrial lines
+              <div
+                className={`px-6 py-6 md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+              >
+                <h4 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Resin, SLA + industrial
                 </h4>
-                <p className="text-charcoal/85 leading-relaxed text-sm">
-                  Those ecosystems range from locked-down appliances to setups
-                  that already rely on a PC or plant software next to the machine.
-                  The idea stays the same: connect Markey where the print file
-                  already flows, and keep demanding image and policy work off the
-                  hardware whose job is mainly to move resin, light, or axes on
-                  schedule.
+                <p className="text-charcoal/75 leading-relaxed text-sm">
+                  Same pattern: attach where the file already flows; keep image
+                  and policy work off the device that moves axes or resin.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-16">
-            <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
-              Features
+          {/* Demo UI */}
+          <div className="mt-16 border-t border-charcoal/20 pt-12">
+            <h3 className="mb-8 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
+              Demo UI
             </h3>
-            <p className="text-charcoal/85 leading-relaxed mb-4">
-              Classification &amp; vision:
-            </p>
-            <ul className="space-y-4 text-charcoal/85 leading-relaxed mb-10">
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Label, confidence, natural-language summary, and model
-                reasoning
-              </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Six orthographic renders (front, back, left, right, top,
-                bottom)
-              </li>
-            </ul>
-            <p className="text-charcoal/85 leading-relaxed mb-4">
-              Analyst dashboard:
-            </p>
-            <ul className="space-y-4 text-charcoal/85 leading-relaxed">
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Policy verdict (Restricted / Accepted / Review) with analyst
-                narrative and export-gate status
-              </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Risk index and classifier confidence bars
-              </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Alternate-hypothesis probabilities (horizontal bar chart)
-              </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Per-view salience chart and matching emphasis on each
-                orthographic tile
-              </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Instrumented pipeline trace with per-step timings and analyst
-                insight bullets
-              </li>
-            </ul>
+            <div className="grid gap-8 md:grid-cols-2">
+              <div
+                className={`border border-charcoal/40 bg-off-white px-6 py-6 md:px-7 md:py-8 ${panelMotion} hover:border-charcoal/50`}
+              >
+                <h4 className="mb-4 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Classification output
+                </h4>
+                <ul className="space-y-3 text-charcoal/75 leading-relaxed text-sm">
+                  <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-1.5 before:bg-charcoal/35">
+                    Label, confidence, short summary, model reasoning
+                  </li>
+                  <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-1.5 before:bg-charcoal/35">
+                    Six orthographic renders (front, back, left, right, top,
+                    bottom)
+                  </li>
+                </ul>
+              </div>
+              <div
+                className={`border border-charcoal/40 bg-off-white px-6 py-6 md:px-7 md:py-8 ${panelMotion} hover:border-charcoal/50`}
+              >
+                <h4 className="mb-4 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Dashboard
+                </h4>
+                <ul className="space-y-3 text-charcoal/75 leading-relaxed text-sm">
+                  <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-1.5 before:bg-charcoal/35">
+                    Policy verdict (Restricted / Accepted / Review), narrative,
+                    status line
+                  </li>
+                  <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-1.5 before:bg-charcoal/35">
+                    Risk index and confidence bars
+                  </li>
+                  <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.55em] before:w-1.5 before:h-1.5 before:bg-charcoal/35">
+                    Alternate labels, per-view weights, pipeline timings
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-16">
-            <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">
-              Market
+          {/* Background */}
+          <div className="mt-16 border-t border-charcoal/20 pt-12">
+            <h3 className="mb-8 font-mono text-xs md:text-sm font-semibold tracking-[0.2em] uppercase text-charcoal">
+              Background
             </h3>
-            <div className="space-y-8">
-              <div>
-                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
+            <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-2">
+              <div
+                className={`border-b border-charcoal/40 px-6 py-6 md:border-b-0 md:border-r md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+              >
+                <h4 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
                   2026 hardware mandates
                 </h4>
-                <p className="text-charcoal/85 leading-relaxed text-sm">
+                <p className="text-charcoal/75 leading-relaxed text-sm">
                   New York Governor Kathy Hochul and Manhattan DA Alvin Bragg are
-                  pushing 2026 mandates requiring 3D printers to include
-                  built-in software to block ghost gun production. The National
-                  Safety Council reports that hard engineering controls reduce
-                  machinery accidents by over 70% compared to administrative
-                  rules. Markey provides that hard engineering control.
+                  pushing mandates requiring 3D printers to include built-in
+                  software to block ghost gun production. Hard engineering
+                  controls reduce machinery accidents by over 70%; this project
+                  is one small slice (mesh classification), not a product claim.
                 </p>
               </div>
-              <div>
-                <h4 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mb-2">
+              <div
+                className={`px-6 py-6 md:px-7 md:py-8 ${panelMotion} hover:bg-charcoal/[0.03]`}
+              >
+                <h4 className="mb-3 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
                   Intellectual property
                 </h4>
-                <p className="text-charcoal/85 leading-relaxed text-sm">
-                  The National Association of Manufacturers notes that IP theft
-                  costs the industrial sector hundreds of billions annually.
-                  The toolpath restriction protocol can serve aerospace and
-                  automotive companies to prevent unauthorized printing of
-                  proprietary assets.
+                <p className="text-charcoal/75 leading-relaxed text-sm">
+                  IP theft costs the industrial sector hundreds of billions
+                  annually. Same class of problem, accountability for what gets
+                  printed, shows up outside guns; not the focus here.
                 </p>
               </div>
             </div>
           </div>
 
-          <div id="demo" className="mt-20">
+          {/* CTA */}
+          <div
+            id="demo"
+            className="mt-16 border-t border-charcoal/20 pt-12 transition-opacity duration-500"
+          >
             <Link
               href="/demo"
-              className="inline-block font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-black hover:bg-black/80 px-6 py-3 transition-colors"
+              className="inline-flex h-[42px] items-center justify-center bg-black px-6 font-mono text-xs uppercase tracking-[0.2em] text-off-white transition-[color,background-color,transform,box-shadow] duration-300 ease-out hover:bg-black/80 hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] active:scale-[0.98]"
             >
-              Try demo
+              Try Demo
             </Link>
-            <p className="mt-3 font-mono text-[10px] tracking-[0.15em] text-charcoal/50 uppercase">
-              Accepts .stl, .obj, and .glb files
+            <p className="mt-2.5 font-mono text-[10px] tracking-[0.18em] text-charcoal/80 uppercase">
+              .stl, .obj, .glb
             </p>
           </div>
         </div>

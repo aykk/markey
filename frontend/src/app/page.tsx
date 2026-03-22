@@ -6,8 +6,12 @@ export default function Home() {
   return (
     <div className="flex flex-col bg-off-white">
       <Navbar />
-      <ContextSection />
-      <ContentSections />
+      <div className="markey-enter">
+        <ContextSection />
+      </div>
+      <div className="markey-enter-delay">
+        <ContentSections />
+      </div>
     </div>
   );
 }

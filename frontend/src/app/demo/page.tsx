@@ -331,7 +331,7 @@ export default function DemoPage() {
                 <div className="flex items-center gap-4">
                   <div className="h-4 w-4 border-2 border-charcoal/30 animate-spin border-t-charcoal" />
                   <p className="font-mono text-sm tracking-widest text-charcoal/55 uppercase">
-                    Building dashboard…
+                    Generating panel…
                   </p>
                 </div>
               </div>

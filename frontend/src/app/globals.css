@@ -21,6 +21,12 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -58,5 +64,43 @@ body {
 
 .demo-rise {
   animation: demo-rise 0.55s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .demo-rise {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Landing: soft section entrances (skipped when user prefers reduced motion) */
+@keyframes markey-fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.markey-enter {
+  animation: markey-fade-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.markey-enter-delay {
+  animation: markey-fade-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 85ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .markey-enter,
+  .markey-enter-delay {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 

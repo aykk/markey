@@ -46,21 +46,27 @@ export function HeroSection() {
             Markey
           </h1>
           <p className="font-sans text-base md:text-lg text-charcoal/90 max-w-md leading-relaxed">
-            Security and compliance inside your slicer. Stop blind translation.
+            Mesh upload, fixed views, classifier, short dashboard, between slicer
+            and printer before print instructions go out.
           </p>
-          <div className="flex gap-3 pointer-events-auto">
+          <div className="flex items-start justify-center gap-3 pointer-events-auto">
             <a
               href="#what-is-markey"
-              className="rounded-md px-4 py-2 font-mono text-xs tracking-[0.2em] uppercase text-charcoal border border-charcoal/40 hover:border-charcoal/70 transition-colors"
+              className="inline-flex h-10 items-center justify-center rounded-md border border-charcoal/40 bg-off-white px-4 font-mono text-xs tracking-[0.2em] uppercase text-charcoal transition-colors duration-300 ease-out hover:border-black hover:bg-black hover:text-off-white"
             >
               Learn more
             </a>
-            <Link
-              href="/demo"
-              className="rounded-md px-4 py-2 font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-charcoal hover:bg-charcoal/90 transition-colors"
-            >
-              Try demo
-            </Link>
+            <div className="flex w-fit flex-col items-center gap-1.5">
+              <Link
+                href="/demo"
+                className="inline-flex h-10 items-center justify-center rounded-md bg-black px-4 font-mono text-xs tracking-[0.2em] uppercase text-off-white transition-colors duration-300 ease-out hover:bg-black/80"
+              >
+                Try Demo
+              </Link>
+              <p className="w-full text-center font-mono text-[10px] tracking-[0.18em] uppercase text-charcoal/80">
+                .stl, .obj, .glb
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -91,7 +97,7 @@ export function HeroSection() {
         <button
           onClick={scrollToContent}
           onKeyDown={(e) => e.key === "Enter" && scrollToContent()}
-          className="pointer-events-auto p-2 text-charcoal/70 hover:text-charcoal transition-colors"
+          className="pointer-events-auto p-2 text-charcoal/70 transition-colors duration-300 ease-out hover:text-charcoal"
           aria-label="Scroll to content"
         >
           <svg

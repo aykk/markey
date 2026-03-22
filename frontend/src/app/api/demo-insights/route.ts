@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
   const filename = typeof body.filename === "string" ? body.filename : "model";
 
-  const prompt = `You generate a DEMO analytics dashboard JSON for a 3D compliance product "Markey".
-The vision pipeline already produced this result (authoritative for allowed vs restricted):
+  const prompt = `You fill in DEMO dashboard JSON for a small research project (Markey) that classifies 3D mesh uploads.
+The classifier already produced this result (authoritative for allowed vs restricted):
 
 ${JSON.stringify(classification, null, 2)}
 
@@ -46,10 +46,10 @@ Return ONLY valid JSON (no markdown fences) with this shape:
   "alternateHypotheses": [ { "name": string, "probability": number 0-1 } ],
   "viewSalience": { "top": number, "bottom": number, "front": number, "back": number, "left": number, "right": number } each 0-1, sum approximately 1,
   "pipelineSteps": [ { "step": string, "durationMs": number } ] with 4-6 steps, plausible timings, total under 15000,
-  "insightBullets": string[] length 3-5, executive tone, each under 120 characters,
+  "insightBullets": string[] length 3-5, plain factual tone, each under 120 characters,
   "exportBlocked": boolean,
   "exportGateLabel": string short,
-  "analystNote": string one sentence
+  "analystNote": string one sentence, neutral technical wording
 }
 
 Rules:
