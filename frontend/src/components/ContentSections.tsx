@@ -262,6 +262,34 @@ export function ContentSections() {
             </span>
           </p>
 
+          <div className="mb-10 md:mb-14 max-w-3xl space-y-4 text-charcoal/75 leading-relaxed text-sm md:text-base">
+            <p>
+              Markey is a fine-tuned model built on{" "}
+              <strong className="font-medium text-charcoal/90">
+                Qwen3 0.6B
+              </strong>{" "}
+              embeddings. It was trained with a hybrid approach:{" "}
+              <strong className="font-medium text-charcoal/90">
+                29-dimensional G-code feature extraction
+              </strong>{" "}
+              and a projection layer on text embeddings. In this setup,
+              feature extraction does most of the heavy lifting, while the text
+              pathway serves as a supplementary classifier.
+            </p>
+            <p>
+              G-code is like assembly: it is human-readable, but not in a form
+              that makes it easy to reason about what the printed part will
+              look like. That plays to the tokenizer&apos;s strengths, tokens
+              like{" "}
+              <code className="font-mono text-[0.92em] text-charcoal/90">
+                G0
+              </code>{" "}
+              already land as natural string units, so we get reasonable results
+              from Qwen&apos;s tokenizer without building a custom one from
+              scratch.
+            </p>
+          </div>
+
           {/* Pipeline steps */}
           <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-3">
             <div
