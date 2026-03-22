@@ -175,7 +175,7 @@ export function ContentSections() {
             </p>
 
             <div className="max-w-4xl">
-              <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-4xl sm:text-5xl md:text-6xl lg:text-[3.5rem] xl:text-7xl font-semibold tracking-tight text-charcoal leading-[1.05]">
+              <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(36px,12px+3vw,72px)] font-semibold tracking-tight text-charcoal leading-[1.05]">
                 Markey
                 <sup className="ml-0.5 align-super text-[0.35em] font-normal text-charcoal/45">
                   *

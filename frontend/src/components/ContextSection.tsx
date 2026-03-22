@@ -75,7 +75,7 @@ export function ContextSection() {
   return (
     <section className="flex min-h-[calc(100dvh-52px)] w-full flex-col md:flex-row bg-off-white">
       <div className="flex w-full md:w-[45%] shrink-0 flex-col justify-center px-8 md:px-10 lg:px-12 py-12 md:py-16">
-        <h1 className="flex flex-col gap-1 font-[family-name:var(--font-ibm-plex-mono)] text-[2.25rem] md:text-[2.75rem] lg:text-[3.25rem] tracking-tight text-charcoal leading-[1.2]">
+        <h1 className="flex flex-col gap-1 font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(28px,8px+2.5vw,52px)] tracking-tight text-charcoal leading-[1.2]">
           <span>3D printed firearms</span>
           <span>
             are a{" "}

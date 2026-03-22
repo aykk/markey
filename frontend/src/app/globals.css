@@ -18,6 +18,8 @@
 }
 
 html {
+  /* 16px at ≥1600px (unchanged on large monitors), scales down to 13px on small laptops */
+  font-size: clamp(13px, 8px + 0.5vw, 16px);
   scroll-behavior: smooth;
 }
 
