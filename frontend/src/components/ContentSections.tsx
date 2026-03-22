@@ -653,6 +653,156 @@ export function ContentSections() {
           </div>
         </div>
       </section>
+
+      {/* FAQ */}
+      <section
+        id="faq"
+        className="border-t border-charcoal/40 bg-charcoal/[0.02] px-8 py-20 md:px-12 md:py-28 lg:px-16"
+      >
+        <div className="mx-auto w-full max-w-4xl">
+          <p className="mb-6 md:mb-8">
+            <span
+              className={`font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase ${sectionHighlightClass}`}
+            >
+              FAQ
+            </span>
+          </p>
+
+          <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(24px,8px+2vw,40px)] font-semibold tracking-tight text-charcoal leading-[1.15] mb-10 md:mb-12">
+            Frequently Asked Questions:
+          </h2>
+
+          <div className="border border-charcoal/40 bg-off-white">
+            <details
+              className={`group border-b border-charcoal/40 last:border-b-0 ${panelMotion} open:bg-charcoal/[0.02]`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-8 md:py-6 font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-charcoal outline-none transition-colors hover:bg-charcoal/[0.03] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 pr-2 text-left">
+                  Why analyze raw G-code instead of just rendering the 3D
+                  model?
+                </span>
+                <span
+                  className="shrink-0 font-mono text-[10px] text-charcoal/45 transition-transform duration-200 ease-out group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▼
+                </span>
+              </summary>
+              <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
+                Visual rendering is vulnerable to &quot;Trojan Horse&quot;
+                attacks. A bad actor can easily hide a restricted component
+                (like a silencer baffle or an auto-sear) inside a hollow,
+                innocuous 3D shape, like a simple box. Visual AI models will only
+                see the box and approve it. Because G-code contains the
+                literal, layer-by-layer instructions sent to the printer, our
+                model analyzes the internal toolpaths and infill. If a weapon is
+                hidden inside, our model detects the kinematics required to
+                print it, making it immune to visual spoofing.
+              </div>
+            </details>
+
+            <details
+              className={`group border-b border-charcoal/40 last:border-b-0 ${panelMotion} open:bg-charcoal/[0.02]`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-8 md:py-6 font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-charcoal outline-none transition-colors hover:bg-charcoal/[0.03] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 pr-2 text-left">
+                  Can&apos;t general AI models (like ChatGPT or Claude) just read
+                  the G-code?
+                </span>
+                <span
+                  className="shrink-0 font-mono text-[10px] text-charcoal/45 transition-transform duration-200 ease-out group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▼
+                </span>
+              </summary>
+              <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
+                No. Frontier language models are built for sequential human
+                language, not millions of lines of spatial coordinates. Standard
+                3D prints generate massive G-code files that quickly exceed the
+                memory limits (context windows) of general AI. Even when they can
+                ingest the file, they suffer from the &quot;Lost in the
+                Middle&quot; phenomenon, failing to find specific patterns in
+                highly repetitive data. Our model is purpose-built using
+                localized feature extraction to natively understand 3D spatial
+                sequences.
+              </div>
+            </details>
+
+            <details
+              className={`group border-b border-charcoal/40 last:border-b-0 ${panelMotion} open:bg-charcoal/[0.02]`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-8 md:py-6 font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-charcoal outline-none transition-colors hover:bg-charcoal/[0.03] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 pr-2 text-left">
+                  Does analyzing G-code add significant latency to the slicing
+                  pipeline?
+                </span>
+                <span
+                  className="shrink-0 font-mono text-[10px] text-charcoal/45 transition-transform duration-200 ease-out group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▼
+                </span>
+              </summary>
+              <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
+                Not at all. Because our architecture relies on localized
+                feature extraction rather than massive, generalized neural
+                networks, inference is highly efficient. The analysis happens
+                in milliseconds during the standard slicing pipeline (e.g., via
+                CuraEngine), allowing us to flag and halt restricted prints at
+                the export gate without bottlenecking your workflow.
+              </div>
+            </details>
+
+            <details
+              className={`group border-b border-charcoal/40 last:border-b-0 ${panelMotion} open:bg-charcoal/[0.02]`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-8 md:py-6 font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-charcoal outline-none transition-colors hover:bg-charcoal/[0.03] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 pr-2 text-left">
+                  What exactly is the model looking for in the code?
+                </span>
+                <span
+                  className="shrink-0 font-mono text-[10px] text-charcoal/45 transition-transform duration-200 ease-out group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▼
+                </span>
+              </summary>
+              <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
+                It evaluates the mechanical reality of the print. It looks for
+                specific kinematic signatures, such as the tight tolerances of
+                a silencer, the specific perimeter layering of a lower receiver,
+                or the distinct infill patterns required for high-stress
+                firearm components, achieving a 98% detection accuracy rate.
+              </div>
+            </details>
+
+            <details
+              className={`group border-b border-charcoal/40 last:border-b-0 ${panelMotion} open:bg-charcoal/[0.02]`}
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 md:px-8 md:py-6 font-mono text-xs md:text-sm font-semibold uppercase tracking-[0.12em] text-charcoal outline-none transition-colors hover:bg-charcoal/[0.03] [&::-webkit-details-marker]:hidden">
+                <span className="min-w-0 pr-2 text-left">
+                  How does this integrate with existing systems?
+                </span>
+                <span
+                  className="shrink-0 font-mono text-[10px] text-charcoal/45 transition-transform duration-200 ease-out group-open:rotate-180"
+                  aria-hidden
+                >
+                  ▼
+                </span>
+              </summary>
+              <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
+                It integrates seamlessly as a localized step in your existing
+                automated slicing pipeline. Once your backend (e.g., Node.js)
+                calls the slicer to generate the G-code, our model analyzes the
+                output file and returns a binary classification and confidence
+                score, which your system can use to automatically update the
+                export gate status.
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
