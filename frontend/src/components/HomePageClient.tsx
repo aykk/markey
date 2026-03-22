@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { GunPanel } from "@/components/GunPanel";
 
 const SECTION_SPACING = "mb-20 md:mb-28";
@@ -247,15 +246,14 @@ export function HomePageClient() {
           </section>
 
           <div className="pt-8">
-            <Link
-              href="/demo"
+            <a
+              href="https://huggingface.co/jungter/markey-v1"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex h-[42px] items-center justify-center rounded-sm border-2 border-charcoal/40 px-6 font-mono text-sm tracking-[0.2em] uppercase text-charcoal transition-colors hover:border-charcoal hover:bg-charcoal/5"
             >
-              Try Demo
-            </Link>
-            <p className="mt-2.5 font-mono text-[10px] tracking-[0.18em] uppercase text-charcoal/80">
-              .stl, .obj, .glb
-            </p>
+              The Model
+            </a>
           </div>
         </article>
       </div>

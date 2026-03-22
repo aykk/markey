@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 const labelClass =
   "font-mono text-[10px] md:text-xs tracking-[0.28em] text-charcoal/55 uppercase";
@@ -456,18 +455,17 @@ export function ContentSections() {
 
           {/* CTA */}
           <div
-            id="demo"
+            id="the-model"
             className="mt-16 border-t border-charcoal/20 pt-12 transition-opacity duration-500"
           >
-            <Link
-              href="/demo"
+            <a
+              href="https://huggingface.co/jungter/markey-v1"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex h-[42px] items-center justify-center bg-black px-6 font-mono text-xs uppercase tracking-[0.2em] text-off-white transition-[color,background-color,transform,box-shadow] duration-300 ease-out hover:bg-black/80 hover:shadow-[0_10px_30px_-18px_rgba(0,0,0,0.45)] active:scale-[0.98]"
             >
-              Try Demo
-            </Link>
-            <p className="mt-2.5 font-mono text-[10px] tracking-[0.18em] text-charcoal/80 uppercase">
-              .stl, .obj, .glb
-            </p>
+              The Model
+            </a>
           </div>
         </div>
       </section>

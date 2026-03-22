@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
@@ -70,17 +69,14 @@ export function ContextSection() {
           >
             Learn more
           </a>
-          <div className="flex w-fit flex-col items-center gap-1.5">
-            <Link
-              href="/demo"
-              className="inline-flex h-[42px] items-center justify-center px-6 font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-black transition-colors duration-300 ease-out hover:bg-black/80"
-            >
-              Try Demo
-            </Link>
-            <p className="w-full text-center font-mono text-[10px] tracking-[0.18em] uppercase text-charcoal/80">
-              .stl, .obj, .glb
-            </p>
-          </div>
+          <a
+            href="https://huggingface.co/jungter/markey-v1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex h-[42px] items-center justify-center px-6 font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-black transition-colors duration-300 ease-out hover:bg-black/80"
+          >
+            The Model
+          </a>
         </div>
       </div>
 
