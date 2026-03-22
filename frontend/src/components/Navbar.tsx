@@ -1,6 +1,25 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import Link from "next/link";
+
+function handleNavClick(
+  e: MouseEvent<HTMLAnchorElement>,
+  href: string,
+  scrollTop: boolean
+) {
+  if (scrollTop) {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+  if (href.startsWith("#")) {
+    e.preventDefault();
+    document.getElementById(href.slice(1))?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }
+}
 
 const NAV_LINKS = [
   { href: "/", label: "Home", scrollTop: true },
@@ -17,7 +36,7 @@ export function Navbar() {
           <Link
             key={label}
             href={href}
-            onClick={scrollTop ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } : undefined}
+            onClick={(e) => handleNavClick(e, href, scrollTop)}
             className="font-mono text-xs tracking-[0.2em] uppercase text-charcoal/70 transition-colors duration-300 ease-out hover:text-charcoal"
           >
             {label}
