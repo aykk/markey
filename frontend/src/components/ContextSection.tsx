@@ -11,10 +11,13 @@ export function ContextSection() {
   const accumulatedRef = useRef(WHEEL_DELTA_PER_FULL);
 
   const onWheel = useCallback((e: WheelEvent) => {
-    if (window.scrollY > 50) return;
+    if (window.scrollY > 0) return;
 
     const isFullyUnexploded = accumulatedRef.current === 0;
+    const isFullyExploded = accumulatedRef.current === WHEEL_DELTA_PER_FULL;
+
     if (isFullyUnexploded && e.deltaY > 0) return;
+    if (isFullyExploded && e.deltaY < 0) return;
 
     e.preventDefault();
     accumulatedRef.current = Math.max(
@@ -34,18 +37,18 @@ export function ContextSection() {
     <section className="flex min-h-[calc(100dvh-52px)] w-full flex-col md:flex-row bg-off-white">
       <div className="flex w-full md:w-[45%] shrink-0 flex-col justify-center px-8 md:px-10 lg:px-12 py-12 md:py-16">
         <h1 className="font-mono text-2xl md:text-3xl lg:text-4xl tracking-[0.12em] text-charcoal uppercase leading-[1.3]">
-          3D printed firearms are a growing problem.
+          3D printed firearms<br />are a <em className="italic">growing problem.</em>
         </h1>
         <p className="mt-8 text-charcoal/85 text-base md:text-lg leading-relaxed max-w-lg">
-          In 2026, laws have been passed in Colorado, California, and New York to restrict this, but little to no software exists to enforce it.
+          In 2026, laws have been passed in Colorado, California, and New York to restrict this, but <strong className="font-semibold text-charcoal">little to no software exists</strong> to enforce it.
         </p>
 
         <ul className="mt-10 space-y-5">
           <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/70 font-mono text-xs tracking-[0.18em] text-charcoal/80 uppercase leading-relaxed">
-            Ghost guns are unserialized and untraceable, often made via 3D printing.
+            Ghost guns are <em className="not-italic font-bold text-charcoal">unserialized and untraceable,</em> often made via 3D printing.
           </li>
           <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/70 font-mono text-xs tracking-[0.18em] text-charcoal/80 uppercase leading-relaxed">
-            No software can detect or block prohibited files. 3D printers have no guardrails.
+            As of now, 3D printers have no guardrails. <em className="not-italic font-bold text-charcoal">Virtually no software can detect or block prohibited blueprints.</em>
           </li>
         </ul>
 
