@@ -3,6 +3,7 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import { writeFile, readFile, mkdir, rm } from "fs/promises";
 import { join } from "path";
+import { tmpdir } from "os";
 import { randomUUID } from "crypto";
 
 const exec = promisify(execFile);
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sessionId = randomUUID();
-  const tmpDir = join("/tmp", "markey", sessionId);
+  const tmpDir = join(tmpdir(), "markey", sessionId);
   const rendersDir = join(tmpDir, "renders");
 
   try {

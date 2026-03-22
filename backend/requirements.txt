@@ -1,0 +1,8 @@
+# STL/OBJ/GLB rendering (render_stl_views.py)
+numpy>=1.24
+trimesh>=4.0
+matplotlib>=3.7
+
+# Gemini review (gemini.py)
+pillow>=10.0
+google-genai>=1.0
