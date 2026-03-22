@@ -118,7 +118,7 @@ def extract_gcode_features(gcode_text: str) -> dict:
         )
 
     total_moves = g0_count + g1_count
-    extrusion_ratio = float(len(e_vals) / total_moves) if total_moves else 0.0
+    extrusion_ratio = float(g1_count / max(total_moves, 1))
 
     x_min, x_max, x_mean, x_std = safe_stats(x_vals)
     y_min, y_max, y_mean, y_std = safe_stats(y_vals)
@@ -267,11 +267,23 @@ def load_artifacts():
     return model, scaler, embed_model, model_device
 
 
-def classify_gcode(gcode_path: str, threshold: float = 0.5) -> dict:
-    model, scaler, embed_model, model_device = load_artifacts()
+ARTIFACTS = None
 
-    with open(gcode_path, "r", encoding="utf-8", errors="ignore") as gcode_file:
-        gcode_text = gcode_file.read()
+
+def get_artifacts():
+    global ARTIFACTS
+    if ARTIFACTS is None:
+        ARTIFACTS = load_artifacts()
+    return ARTIFACTS
+
+
+def classify_gcode_text(gcode_text: str, threshold: float = 0.5) -> dict:
+    model, scaler, embed_model, model_device = get_artifacts()
+
+    if not isinstance(gcode_text, str) or not gcode_text.strip():
+        raise RuntimeError("G-code text is empty.")
+
+    gcode_text = gcode_text.strip()
 
     features = extract_gcode_features(gcode_text)
     ordered_features = np.array(
@@ -311,6 +323,15 @@ def classify_gcode(gcode_path: str, threshold: float = 0.5) -> dict:
             f"Confidence: {probability * 100:.1f}%.",
         ],
     }
+
+
+def classify_gcode(gcode_input: str, threshold: float = 0.5) -> dict:
+    if os.path.isfile(gcode_input):
+        with open(gcode_input, "r", encoding="utf-8", errors="ignore") as gcode_file:
+            gcode_text = gcode_file.read()
+        return classify_gcode_text(gcode_text, threshold=threshold)
+
+    return classify_gcode_text(gcode_input, threshold=threshold)
 
 
 def main():

@@ -48,6 +48,21 @@ def load_single_mesh(model_path: str) -> trimesh.Trimesh:
         mesh = loaded
 
     elif isinstance(loaded, trimesh.Scene):
+        try:
+            if hasattr(loaded, "to_geometry"):
+                merged = loaded.to_geometry()
+            else:
+                merged = loaded.dump(concatenate=True)
+            if isinstance(merged, trimesh.Trimesh) and merged.faces is not None and len(merged.faces) > 0:
+                mesh = merged
+            else:
+                mesh = None
+        except Exception:
+            mesh = None
+
+        if mesh is not None:
+            return mesh
+
         meshes = []
         for g in loaded.geometry.values():
             if isinstance(g, trimesh.Trimesh) and g.vertices is not None and g.faces is not None and len(g.faces) > 0:
@@ -173,7 +188,7 @@ def render_views(model_path: str, output_dir: str = "renders"):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python render_stl_views.py <file.stl|file.obj|file.fbx> [output_dir]")
+        print("Usage: python render_stl_views.py <file.stl|file.obj|file.ply|file.off|file.glb|file.gltf> [output_dir]")
         sys.exit(1)
 
     model_file = sys.argv[1]
