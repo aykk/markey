@@ -22,6 +22,7 @@ type AnalysisResult = {
   views: Record<string, string>;
   classification: Classification;
   filename: string;
+  totalTimeMs?: number;
 };
 
 const ACCEPTED_EXTENSIONS = [".stl", ".obj", ".glb"];
@@ -122,6 +123,7 @@ export default function DemoPage() {
           body: JSON.stringify({
             classification: c,
             filename: data.filename,
+            views: data.views,
           }),
         });
         const j = await ir.json();
@@ -161,7 +163,9 @@ export default function DemoPage() {
   }, []);
 
   const isRestricted =
-    result?.classification?.label === "restricted_mechanical_part";
+    result?.classification?.label === "restricted_mechanical_part" ||
+    result?.classification?.label === "yes it's a gun" ||
+    result?.classification?.verdict === "yes it's a gun";
 
   const showDashboard = Boolean(result && !loading);
 
@@ -299,10 +303,7 @@ export default function DemoPage() {
                 {result!.filename}
               </p>
               <p className="font-mono text-sm text-charcoal mt-1 uppercase tracking-wide">
-                {(result!.classification.verdict ?? result!.classification.label).replace(
-                  /_/g,
-                  " "
-                )}
+                {isRestricted ? "Restricted mechanical component" : "Accepted mechanical component"}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -329,6 +330,7 @@ export default function DemoPage() {
                 views={result!.views}
                 source={insightsSource}
                 warning={insightsWarning}
+                totalTimeMs={result!.totalTimeMs}
               />
             )}
             {insightsLoading && !insights && (

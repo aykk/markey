@@ -50,7 +50,7 @@ function normalizeSalience(raw: Record<string, unknown>): Record<string, number>
 }
 
 export function normalizeInsights(partial: Record<string, unknown>, c: ClassificationLike): DemoInsights {
-  const restricted = c.label === "restricted_mechanical_part";
+  const restricted = c.label === "restricted_mechanical_part" || c.label === "yes it's a gun" || (c as any).verdict === "yes it's a gun";
   const allowed = c.label === "allowed";
   const policy = partial.policyOutcome as string;
   let policyOutcome: PolicyOutcome = "MANUAL_REVIEW";
@@ -98,7 +98,12 @@ export function normalizeInsights(partial: Record<string, unknown>, c: Classific
     String(partial.exportGateLabel || "") ||
     (exportBlocked ? "G-code export blocked" : "G-code export permitted");
 
-  const analystNote = String(partial.analystNote || c.summary || "").slice(0, 400);
+  let analystNote = String(partial.analystNote || c.summary || "").slice(0, 400);
+  analystNote = analystNote
+    .replace(/Automated classification/gi, "Markey")
+    .replace(/\ba gun\b/gi, "a firearm component")
+    .replace(/yes it's a gun/gi, "restricted mechanical component")
+    .replace(/no it's not a gun/gi, "accepted mechanical component");
 
   return {
     policyOutcome,
@@ -116,7 +121,7 @@ export function normalizeInsights(partial: Record<string, unknown>, c: Classific
 }
 
 export function buildFallbackInsights(c: ClassificationLike): DemoInsights {
-  const restricted = c.label === "restricted_mechanical_part";
+  const restricted = c.label === "restricted_mechanical_part" || c.label === "yes it's a gun" || (c as any).verdict === "yes it's a gun";
   const conf = Math.min(1, Math.max(0, Number(c.confidence) || 0));
 
   return {
@@ -154,6 +159,10 @@ export function buildFallbackInsights(c: ClassificationLike): DemoInsights {
         : [c.summary || "Analysis complete. Review orthographic views for geometry cues."],
     exportBlocked: restricted || c.label === "unknown",
     exportGateLabel: restricted ? "G-code export blocked by policy" : "G-code export permitted",
-    analystNote: c.summary || "Heuristic audit complete.",
+    analystNote: (c.summary || "Heuristic audit complete.")
+      .replace(/Automated classification/gi, "Markey")
+      .replace(/\ba gun\b/gi, "a firearm component")
+      .replace(/yes it's a gun/gi, "restricted mechanical component")
+      .replace(/no it's not a gun/gi, "accepted mechanical component"),
   };
 }

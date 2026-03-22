@@ -4,6 +4,7 @@ import os
 import re
 import shlex
 import shutil
+import ssl
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -337,7 +338,7 @@ def ensure_remote_runtime_ready(connection: SshConnection, remote_root: str, rem
         " && ".join(
             [
                 f"cd {shlex.quote(remote_root)}",
-                f"{shlex.quote(remote_python)} -c {shlex.quote('import torch, numpy, sklearn, sentence_transformers; print(\'runtime-ok\')')}",
+                f"{shlex.quote(remote_python)} -c " + shlex.quote("import torch, numpy, sklearn, sentence_transformers; print('runtime-ok')"),
             ]
         ),
         timeout=120,
@@ -368,7 +369,7 @@ def ensure_remote_runtime_ready(connection: SshConnection, remote_root: str, rem
         " && ".join(
             [
                 f"cd {shlex.quote(remote_root)}",
-                f"{shlex.quote(remote_python)} -c {shlex.quote('import torch, numpy, sklearn, sentence_transformers; print(\'runtime-ok\')')}",
+                f"{shlex.quote(remote_python)} -c " + shlex.quote("import torch, numpy, sklearn, sentence_transformers; print('runtime-ok')"),
             ]
         ),
         timeout=120,
@@ -415,7 +416,7 @@ def direct_api_request(
     request = Request(url, data=data, headers=headers, method=method)
     debug_log(f"HTTP {method} {url}")
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=ssl._create_unverified_context()) as response:
             body = response.read().decode("utf-8")
             debug_log(f"HTTP {method} {url} -> {response.status} body={trim_output(body)}")
             return json.loads(body)
@@ -444,7 +445,7 @@ def remote_api_request(
     request = Request(url, data=data, headers=headers, method=method)
     debug_log(f"HTTP {method} {url}")
     try:
-        with urlopen(request, timeout=timeout) as response:
+        with urlopen(request, timeout=timeout, context=ssl._create_unverified_context()) as response:
             body = response.read().decode("utf-8")
             debug_log(f"HTTP {method} {url} -> {response.status} body={trim_output(body)}")
             return json.loads(body)
