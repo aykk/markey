@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import {
   PauseIcon,
@@ -11,14 +11,9 @@ import {
 } from "@/components/icons/ViewControlIcons";
 import { HeroCanvas } from "@/components/three/HeroCanvas";
 
-const WHEEL_DELTA_PER_FULL = 800;
-const LOCK_DURATION = 500;
-
 export function ContextSection() {
-  const [explodeProgress, setExplodeProgress] = useState(0);
+  const [hovered, setHovered] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
-  const accumulatedRef = useRef(0);
-  const lockedUntilRef = useRef(0);
   const orbitControlsRef = useRef<OrbitControlsImpl | null>(null);
 
   const zoomIn = useCallback(() => {
@@ -34,43 +29,6 @@ export function ContextSection() {
     c.dollyOut(0.92);
     c.update();
   }, []);
-
-  const onWheel = useCallback((e: WheelEvent) => {
-    if (window.scrollY > 0) return;
-
-    if (Date.now() < lockedUntilRef.current) {
-      e.preventDefault();
-      return;
-    }
-
-    const isFullyCollapsed = accumulatedRef.current === 0;
-    const isFullyExploded = accumulatedRef.current === WHEEL_DELTA_PER_FULL;
-
-    // Collapsed + scroll up: nothing to do; let browser handle
-    if (isFullyCollapsed && e.deltaY < 0) return;
-    // Exploded + scroll down: advance the page
-    if (isFullyExploded && e.deltaY > 0) return;
-
-    e.preventDefault();
-
-    const prev = accumulatedRef.current;
-    // Scroll down → explode; scroll up → collapse
-    accumulatedRef.current = Math.max(
-      0,
-      Math.min(WHEEL_DELTA_PER_FULL, accumulatedRef.current + e.deltaY)
-    );
-    setExplodeProgress(accumulatedRef.current / WHEEL_DELTA_PER_FULL);
-
-    if (prev < WHEEL_DELTA_PER_FULL && accumulatedRef.current === WHEEL_DELTA_PER_FULL) {
-      lockedUntilRef.current = Date.now() + LOCK_DURATION;
-    }
-  }, []);
-
-  useEffect(() => {
-    const el = document.documentElement;
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [onWheel]);
 
   return (
     <section className="flex min-h-[calc(100dvh-52px)] w-full flex-col md:flex-row bg-off-white">
@@ -125,7 +83,11 @@ export function ContextSection() {
         </div>
       </div>
 
-      <div className="relative flex-1 min-h-[320px] md:min-h-0 border-t md:border-t-0 md:border-l border-charcoal/40 overflow-hidden bg-black">
+      <div
+        className="relative flex-1 min-h-[320px] md:min-h-0 border-t md:border-t-0 md:border-l border-charcoal/40 overflow-hidden bg-black"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
         <button
           type="button"
           onClick={() => setAutoRotate((v) => !v)}
@@ -160,7 +122,7 @@ export function ContextSection() {
         </span>
         <div className="absolute inset-0">
           <HeroCanvas
-            exploded={explodeProgress}
+            exploded={hovered ? 1 : 0}
             controlsRef={orbitControlsRef}
             autoRotate={autoRotate}
           />

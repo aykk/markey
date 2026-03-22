@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const labelClass =
@@ -466,6 +467,114 @@ export function ContentSections() {
             <p className="mt-2.5 font-mono text-[10px] tracking-[0.18em] text-charcoal/80 uppercase">
               .stl, .obj, .glb
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Results */}
+      <section
+        id="results"
+        className="border-t border-charcoal/40 bg-off-white px-8 py-20 md:px-12 md:py-28 lg:px-16"
+      >
+        <div className="mx-auto w-full max-w-4xl">
+          <p className="mb-6 md:mb-8">
+            <span
+              className={`font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase ${sectionHighlightClass}`}
+            >
+              Results
+            </span>
+          </p>
+
+          <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(28px,10px+2vw,48px)] font-semibold tracking-tight text-charcoal leading-[1.1] mb-4">
+            VERT evaluation
+          </h2>
+          <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-16">
+            VERT (View-Enhanced Recognition Transformer) was trained on a
+            labeled dataset of gun and non-gun 3D-printable meshes. Below are
+            the key outputs from evaluation.
+          </p>
+
+          <div className="space-y-16">
+            {/* Confusion matrix */}
+            <div
+              className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
+            >
+              <div className="px-6 py-6 md:px-8 md:py-8">
+                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Confusion matrix
+                </h3>
+                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
+                  Binary classification on the held-out test set: 176 true
+                  negatives, 224 true positives, 3 false positives, and zero
+                  false negatives. The model never missed an actual firearm
+                  part, which is the failure mode that matters most for a
+                  safety gate.
+                </p>
+                <div className="relative w-full max-w-md mx-auto">
+                  <Image
+                    src="/VERT_confusion_matrix.webp"
+                    alt="Confusion matrix showing 176 true negatives, 224 true positives, 3 false positives, 0 false negatives"
+                    width={807}
+                    height={678}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Training curves */}
+            <div
+              className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
+            >
+              <div className="px-6 py-6 md:px-8 md:py-8">
+                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Training curves
+                </h3>
+                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
+                  Loss converges within the first few epochs and stays flat,
+                  with no divergence between train and validation. Validation
+                  accuracy climbs to 99.3% by epoch 8 and holds. The model
+                  learns the boundary quickly and does not overfit.
+                </p>
+                <div className="relative w-full">
+                  <Image
+                    src="/VERT_training_curves.webp"
+                    alt="Training loss and validation accuracy curves over 20 epochs, converging early with 99.3% final accuracy"
+                    width={1784}
+                    height={581}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Feature distributions */}
+            <div
+              className={`border border-charcoal/40 bg-off-white ${panelMotion} hover:border-charcoal/50`}
+            >
+              <div className="px-6 py-6 md:px-8 md:py-8">
+                <h3 className="mb-2 font-mono text-sm font-semibold uppercase tracking-[0.15em] text-charcoal">
+                  Feature distributions
+                </h3>
+                <p className="max-w-2xl text-charcoal/70 leading-relaxed text-sm mb-6">
+                  Per-feature histograms split by class (gun vs. non-gun).
+                  Several G-code-derived features, particularly movement
+                  counts, coordinate ranges, and extrusion ratios, show clear
+                  separation between classes, confirming the signal the
+                  classifier relies on is structurally grounded rather than
+                  noise.
+                </p>
+                <div className="relative w-full">
+                  <Image
+                    src="/VERT_feature_distributions.webp"
+                    alt="Grid of per-feature histograms comparing gun and non-gun class distributions across G-code features"
+                    width={2994}
+                    height={2384}
+                    className="w-full h-auto"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>

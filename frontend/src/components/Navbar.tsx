@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { href: "/", label: "Home", scrollTop: true },
   { href: "#what-is-markey", label: "Project", scrollTop: false },
   { href: "#how-it-works", label: "How it works", scrollTop: false },
+  { href: "#results", label: "Results", scrollTop: false },
 ] as const;
 
 export function Navbar() {
