@@ -48,8 +48,10 @@ export function HomePageClient() {
               Markey
             </h1>
             <p className="text-charcoal/90 leading-relaxed text-lg">
-              A security and compliance layer inside your slicer. Stops blind
-              translation of meshes into machine instructions.
+              You upload a mesh (STL, OBJ, or GLB). Fixed views, classifier, then
+              a short dashboard. Meant to sit between the slicer and the printer
+              so a job can be reviewed or stopped before print instructions go
+              out.
             </p>
           </header>
 
@@ -90,12 +92,10 @@ export function HomePageClient() {
                   01
                 </span>
                 <h3 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mt-1 mb-2">
-                  Toolpath generation
+                  Mesh in
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
-                  The slicer converts a CAD file or mesh into raw G-code. Markey
-                  ingests standard mesh formats (STL, OBJ, GLB) at the compliance
-                  layer for vision analysis before export.
+                  STL, OBJ, GLB. Runs on the file; slicer UI unchanged.
                 </p>
               </div>
               <div>
@@ -103,12 +103,10 @@ export function HomePageClient() {
                   02
                 </span>
                 <h3 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mt-1 mb-2">
-                  Spatial mapping
+                  Views + model
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
-                  An OpenGL visualizer intercepts the G-code and renders the
-                  physical toolpaths, giving the software eyes to understand the
-                  geometry being printed.
+                  Fixed views of the part, then the classifier.
                 </p>
               </div>
               <div>
@@ -116,32 +114,24 @@ export function HomePageClient() {
                   03
                 </span>
                 <h3 className="font-mono text-sm tracking-[0.15em] text-charcoal uppercase mt-1 mb-2">
-                  Heuristic auditing
+                  Dashboard
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
-                  Vision models and LLMs analyze renderings and spatial signals to
-                  flag restricted geometries. When a prohibited component is
-                  detected, policy enforcement halts extrusion export and surfaces
-                  a clear verdict at the export gate.
+                  Label, confidence, alternates, which views mattered, review or
+                  stop before print instructions if you wire it in there.
                 </p>
               </div>
             </div>
-            <p className="mt-8 text-charcoal/75 leading-relaxed text-sm italic">
-              Like the elevator safety brake invented in 1852: the system
-              defaults to safety during failure. Markey fails closed when it
-              detects illicit instructions.
-            </p>
           </section>
 
           <section className={SECTION_SPACING}>
             <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
-              Why G-code
+              G-code
             </h2>
             <p className="text-charcoal/85 leading-relaxed">
-              Markey analyzes G-code directly instead of visualizations. This
-              prevents workarounds, such as enclosing restricted parts in a box
-              to conceal the interior, since the toolpaths themselves are
-              audited.
+              Mesh checks miss cases where geometry is hidden in a shell but
+              shows up in toolpaths. This prototype is mesh + handoff before
+              print; G-code is a separate thread.
             </p>
           </section>
 
@@ -150,10 +140,9 @@ export function HomePageClient() {
               Between the slicer and the printer
             </h2>
             <p className="text-charcoal/85 leading-relaxed text-sm mb-6">
-              Markey sits where a 3D model becomes print instructions and those
-              instructions are sent to the machine. It reviews the part and the
-              real print file, and can block the job before hardware runs. Teams
-              keep their slicers; Markey is the checkpoint in the middle.
+              Between slicing and the printer: part file exists, motors
+              haven&apos;t started. The file and hardware handoff are what matter
+              here.
             </p>
             <p className="font-mono text-[10px] tracking-[0.2em] text-charcoal/55 uppercase mb-4">
               Other places it can plug in
@@ -189,14 +178,14 @@ export function HomePageClient() {
 
           <section className={SECTION_SPACING}>
             <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
-              Features
+              Demo UI
             </h2>
             <p className="text-charcoal/85 leading-relaxed mb-3 text-sm">
-              Classification &amp; vision:
+              Classification output:
             </p>
             <ul className="space-y-2 text-charcoal/85 leading-relaxed text-sm mb-6">
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Label, confidence, summary, and model reasoning
+                Label, confidence, summary, model reasoning
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Six orthographic renders (front, back, left, right, top,
@@ -204,30 +193,30 @@ export function HomePageClient() {
               </li>
             </ul>
             <p className="text-charcoal/85 leading-relaxed mb-3 text-sm">
-              Analyst dashboard:
+              Dashboard:
             </p>
             <ul className="space-y-2 text-charcoal/85 leading-relaxed text-sm">
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Policy verdict, analyst narrative, export-gate status
+                Verdict, short narrative, demo gate status
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Risk index and confidence bars
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Alternate hypotheses and view-salience charts (Recharts)
+                Alternate labels (bar chart) and view weights
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Salience-weighted orthographic grid
+                Orthographic grid with per-view emphasis
               </li>
               <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
-                Instrumented pipeline trace and analyst insight bullets
+                Pipeline steps with timings and short notes
               </li>
             </ul>
           </section>
 
           <section className={SECTION_SPACING}>
             <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
-              Market
+              Background
             </h2>
             <div className="space-y-6">
               <div>
@@ -240,7 +229,8 @@ export function HomePageClient() {
                   built-in software to block ghost gun production. The National
                   Safety Council reports that hard engineering controls reduce
                   machinery accidents by over 70% compared to administrative
-                  rules. Markey provides that hard engineering control.
+                  rules; that&apos;s the regulatory angle; this repo is a small
+                  mesh-classification experiment, not a product.
                 </p>
               </div>
               <div>
@@ -249,10 +239,8 @@ export function HomePageClient() {
                 </h3>
                 <p className="text-charcoal/85 leading-relaxed text-sm">
                   The National Association of Manufacturers notes that IP theft
-                  costs the industrial sector hundreds of billions annually. The
-                  toolpath restriction protocol can serve aerospace and
-                  automotive companies to prevent unauthorized printing of
-                  proprietary assets.
+                  costs the industrial sector hundreds of billions annually, a
+                  related accountability problem, not the focus of this project.
                 </p>
               </div>
             </div>
@@ -261,10 +249,13 @@ export function HomePageClient() {
           <div className="pt-8">
             <Link
               href="/demo"
-              className="inline-block font-mono text-sm tracking-[0.2em] uppercase text-charcoal border-2 border-charcoal/40 hover:border-charcoal hover:bg-charcoal/5 px-6 py-3 rounded-sm transition-colors"
+              className="inline-flex h-[42px] items-center justify-center rounded-sm border-2 border-charcoal/40 px-6 font-mono text-sm tracking-[0.2em] uppercase text-charcoal transition-colors hover:border-charcoal hover:bg-charcoal/5"
             >
-              Try demo
+              Try Demo
             </Link>
+            <p className="mt-2.5 font-mono text-[10px] tracking-[0.18em] uppercase text-charcoal/80">
+              .stl, .obj, .glb
+            </p>
           </div>
         </article>
       </div>

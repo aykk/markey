@@ -94,7 +94,7 @@ export function DemoInsightsPanel({
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-2 border-b border-charcoal/20 pb-4 font-mono text-xs text-charcoal/60">
           {source && (
             <span className="tracking-wide uppercase">
-              Insight layer:{" "}
+              Generated copy:{" "}
               <span className="text-charcoal">
                 {source === "gemini"
                   ? "Gemini 2.5 Flash"
@@ -110,13 +110,13 @@ export function DemoInsightsPanel({
 
       {/* 1, Verdict & policy */}
       <section>
-        <h2 className={sectionTitle}>Verdict & policy</h2>
+        <h2 className={sectionTitle}>Verdict (demo)</h2>
         <div
           className={`border-2 px-6 py-8 md:px-10 md:py-10 ${toneBorder(policy.tone)}`}
         >
           <div>
             <p className="font-mono text-xs tracking-[0.25em] text-charcoal/50 uppercase mb-2">
-              Policy outcome
+              Demo outcome
             </p>
             <p
               className={`font-mono text-4xl md:text-5xl tracking-tight uppercase ${toneText(policy.tone)} flex items-baseline gap-3`}
@@ -306,7 +306,7 @@ export function DemoInsightsPanel({
 
       {/* 5, Pipeline & insights */}
       <section>
-        <h2 className={sectionTitle}>Trace & analyst notes</h2>
+        <h2 className={sectionTitle}>Trace and notes</h2>
         <div className="grid gap-6 lg:grid-cols-12">
           <div className="border border-charcoal/40 p-6 lg:col-span-5">
             <p className="font-mono text-xs tracking-[0.2em] text-charcoal/50 uppercase mb-4">
@@ -336,7 +336,7 @@ export function DemoInsightsPanel({
           </div>
           <div className="border border-charcoal/40 bg-black p-6 text-off-white lg:col-span-7">
             <p className="font-mono text-xs tracking-[0.2em] text-white/50 uppercase mb-5">
-              Analyst insights
+              Notes
             </p>
             <ul className="space-y-4">
               {insights.insightBullets.map((b, i) => (

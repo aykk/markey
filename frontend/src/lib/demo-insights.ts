@@ -1,4 +1,4 @@
-/** Analyst dashboard payload enriched from classification (vision + policy fields). */
+/** Demo dashboard payload from classification (vision + policy-shaped fields). */
 
 export type PolicyOutcome = "BLOCK_EXPORT" | "ALLOW_EXPORT" | "MANUAL_REVIEW";
 

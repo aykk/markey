@@ -21,7 +21,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "MARKEY",
   description:
-    "A security and compliance layer that sits inside 3D slicing software. Stops blind translation of meshes into machine instructions.",
+    "Mesh upload (STL, OBJ, GLB), fixed views, classifier, short dashboard, meant to sit between the slicer and printer before print instructions go out.",
 };
 
 export default function RootLayout({

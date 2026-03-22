@@ -4,20 +4,20 @@ import Link from "next/link";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", scrollTop: true },
-  { href: "#what-is-markey", label: "What is Markey?", scrollTop: false },
-  { href: "#how-it-works", label: "How it Works", scrollTop: false },
+  { href: "#what-is-markey", label: "Project", scrollTop: false },
+  { href: "#how-it-works", label: "How it works", scrollTop: false },
 ] as const;
 
 export function Navbar() {
   return (
-    <nav className="flex items-center justify-center px-6 md:px-10 py-5 border-b border-charcoal/40">
+    <nav className="sticky top-0 z-30 flex items-center justify-center border-b border-charcoal/35 bg-off-white/90 px-6 py-5 shadow-[0_1px_0_0_rgba(54,69,79,0.06)] backdrop-blur-sm transition-[background-color,box-shadow,border-color] duration-500 ease-out md:px-10 supports-[backdrop-filter]:bg-off-white/80">
       <div className="hidden md:flex items-center gap-8 md:gap-12">
         {NAV_LINKS.map(({ href, label, scrollTop }) => (
           <Link
             key={label}
             href={href}
             onClick={scrollTop ? (e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); } : undefined}
-            className="font-mono text-xs tracking-[0.2em] text-charcoal/70 hover:text-charcoal uppercase transition-colors"
+            className="font-mono text-xs tracking-[0.2em] uppercase text-charcoal/70 transition-colors duration-300 ease-out hover:text-charcoal"
           >
             {label}
           </Link>
