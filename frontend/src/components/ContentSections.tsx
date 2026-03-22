@@ -491,9 +491,10 @@ export function ContentSections() {
             Markey-v1 Evaluations
           </h2>
           <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-10">
-            Markey was trained on a
-            labeled dataset of gun and non-gun 3D-printable meshes rendered
-            into fixed orthographic views before classification.
+            Markey is an 0.6B embedding model that was trained on a
+            labeled dataset of gun and non-gun 3D-printable meshes in G-code.
+
+            You can find the dataset here on <a href="https://huggingface.co/datasets/jungter/gcode-to-model-gn" target="_blank" rel="noopener noreferrer" className="rounded-sm bg-charcoal/[0.09] px-1.5 py-0.5 text-charcoal transition-colors duration-300 ease-out hover:bg-charcoal/15">Huggingface</a>.
           </p>
 
           {/* Key metrics strip */}
