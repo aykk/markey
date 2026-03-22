@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useThree } from "@react-three/fiber";
-import { Environment, OrbitControls } from "@react-three/drei";
+import { Environment, Grid, OrbitControls } from "@react-three/drei";
 import type { RefObject } from "react";
 import { Suspense, useEffect } from "react";
 import { DiagramGun } from "./DiagramGun";
@@ -54,14 +54,30 @@ export function HeroCanvas({ exploded = 0, controlsRef: _ }: HeroCanvasProps) {
         target={MODEL_CENTER}
         enableZoom={false}
         enablePan={false}
+        autoRotate
+        autoRotateSpeed={0.5}
       />
       <ambientLight intensity={0.92} />
       <directionalLight position={[6, 8, 5]} intensity={1.05} />
       <directionalLight position={[-5, 3, -4]} intensity={0.35} />
       <Environment preset="studio" environmentIntensity={0.4} />
 
+      <Grid
+        position={[MODEL_CENTER[0], -0.01, MODEL_CENTER[2]]}
+        args={[10, 10]}
+        cellSize={0.2}
+        cellThickness={0.6}
+        cellColor="#ffffff"
+        sectionSize={1}
+        sectionThickness={1}
+        sectionColor="#ffffff"
+        fadeDistance={10}
+        fadeStrength={1.5}
+        infiniteGrid
+      />
+
       <Suspense fallback={null}>
-        <group position={[MODEL_CENTER[0], MODEL_CENTER[1], MODEL_CENTER[2] - 0.05]} scale={1.5}>
+        <group position={MODEL_CENTER} scale={1.5}>
           <DiagramGun exploded={exploded} />
         </group>
       </Suspense>

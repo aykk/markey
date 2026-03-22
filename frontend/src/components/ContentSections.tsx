@@ -11,45 +11,42 @@ export function ContentSections() {
           <h2 className="font-mono text-3xl md:text-4xl tracking-[0.25em] text-charcoal uppercase mb-6">
             Markey
           </h2>
-          <p className="font-mono text-lg md:text-xl tracking-widest text-charcoal/90 mb-4 leading-relaxed">
-            Security and compliance inside your slicer. Stop blind translation.
-          </p>
-          <p className="text-charcoal/75 mb-14 leading-relaxed">
-            Markey is named after Senator Ed Markey, who has championed legislation to ban 3D-printed guns for over a decade.
+          <p className="font-mono text-lg md:text-xl tracking-widest text-charcoal/90 mb-14 leading-relaxed">
+            An ML-powered identification and restriction layer within your slicer.*
           </p>
 
           <div className="mb-14">
             <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-4">Key terms</h3>
             <ul className="space-y-3 text-sm text-charcoal/85 leading-relaxed">
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 <strong className="font-mono text-charcoal/90">Slicer</strong> — Software that converts 3D models into print instructions; the bridge between design and manufacture.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 <strong className="font-mono text-charcoal/90">G-code</strong> — The machine instruction language that tells 3D printers exactly where to move and how much material to extrude.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 <strong className="font-mono text-charcoal/90">Mesh</strong> — A 3D model made of vertices and triangles; the input format slicers consume before producing G-code.
               </li>
             </ul>
           </div>
 
           <div className="space-y-12">
-            <div className="pl-5 border-l-2 border-charcoal/20">
+            <div className="pl-5 border-l border-charcoal/40">
               <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-3">The blind spot</h3>
               <p className="text-charcoal/85 leading-relaxed">
-                Slicers translate meshes to G-code with zero understanding of what they&apos;re printing. No detection. No compliance. Just blind translation—and in 2026, that&apos;s a liability.
+                Slicers translate meshes to G-code with <em className="italic">zero understanding</em> of what they&apos;re printing. No detection. No compliance. Just <span className="underline decoration-1 underline-offset-2">blind translation</span>—and in 2026, that&apos;s a liability.
               </p>
             </div>
-            <div className="pl-5 border-l-2 border-charcoal/20">
+            <div className="pl-5 border-l border-charcoal/40">
               <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-3">Ghost guns</h3>
               <p className="text-charcoal/85 leading-relaxed">
-                Unserialized, untraceable firearms—increasingly made via 3D printing. They bypass background checks. Slicers cannot tell a toy from a receiver.
+                Unserialized, untraceable firearms—increasingly made via 3D printing. They bypass background checks. Slicers <em className="italic">cannot tell a toy from a receiver.</em>
               </p>
             </div>
-            <div className="pl-5 border-l-2 border-charcoal/20">
+            <div className="pl-5 border-l border-charcoal/40">
               <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-3">2026 regulations</h3>
               <p className="text-charcoal/85 leading-relaxed">
-                Colorado criminalizes 3D printing firearms and parts. California requires printers to block gun files by 2029. New York has proposed similar mandates. Fines up to $25,000 per violation. Compliance must happen inside the toolchain—that&apos;s Markey.
+                Colorado criminalizes 3D printing firearms and parts. California requires printers to block gun files by 2029. New York has proposed similar mandates. Fines up to <strong className="font-semibold text-charcoal">$25,000 per violation.</strong> Compliance must happen inside the toolchain—that&apos;s Markey.
               </p>
             </div>
           </div>
@@ -57,29 +54,33 @@ export function ContentSections() {
           <div className="mt-16 space-y-6">
             <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">The Problem</h3>
             <ul className="space-y-6 text-charcoal/85 leading-relaxed">
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Slicers need analysis of object files and G-code to ensure they don&apos;t resemble gun parts.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 There are no guardrails—anyone, including hobbyists, can print a gun.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Ghost guns and ghost gun parts are designed to look like normal parts, such as industrial brackets.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 There are no working implementations that restrict G-code to prevent malicious use.
               </li>
-              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1 before:h-1 before:rounded-full before:bg-charcoal/40">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 The goal is to defer and discourage people from printing guns.
               </li>
             </ul>
           </div>
+
+          <p className="mt-16 text-sm text-charcoal/70 leading-relaxed">
+            *Markey is named after Senator Ed Markey, who has championed legislation to ban 3D-printed guns for over a decade.
+          </p>
         </div>
       </section>
 
       <section
         id="how-it-works"
-        className="flex min-h-dvh flex-col justify-center px-8 md:px-12 lg:px-16 py-20 md:py-28 border-t border-charcoal/10"
+        className="flex min-h-dvh flex-col justify-center px-8 md:px-12 lg:px-16 py-20 md:py-28 border-t border-charcoal/40"
       >
         <div className="mx-auto w-full max-w-4xl">
           <p className="font-mono text-xs tracking-[0.35em] text-charcoal/60 uppercase mb-16">
@@ -114,10 +115,6 @@ export function ContentSections() {
               </p>
             </div>
           </div>
-          <p className="mt-14 text-charcoal/75 leading-relaxed italic">
-            Like the elevator safety brake invented in 1852: the system defaults to safety during failure. Markey fails closed when it detects illicit instructions.
-          </p>
-
           <div className="mt-20">
             <h3 className="font-mono text-xs tracking-[0.2em] text-charcoal/70 uppercase mb-6">Why G-code</h3>
             <p className="text-charcoal/85 leading-relaxed">
@@ -131,13 +128,13 @@ export function ContentSections() {
               Data visualizations include:
             </p>
             <ul className="space-y-4 text-charcoal/85 leading-relaxed">
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Confidence values
               </li>
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Part it recognizes the object as
               </li>
-              <li className="pl-5 relative before:content-['—'] before:absolute before:left-0 before:text-charcoal/50">
+              <li className="pl-5 relative before:content-[''] before:absolute before:left-0 before:top-[0.5em] before:w-1.5 before:h-1.5 before:bg-charcoal/40">
                 Other parts it may recognize the object as
               </li>
             </ul>
@@ -168,10 +165,13 @@ export function ContentSections() {
           <div id="demo" className="mt-20">
             <Link
               href="/demo"
-              className="inline-block font-mono text-sm tracking-[0.2em] uppercase text-charcoal border-2 border-charcoal/40 hover:border-charcoal hover:bg-charcoal/5 px-6 py-3 rounded-sm transition-colors"
+              className="inline-block font-mono text-xs tracking-[0.2em] uppercase text-off-white bg-black hover:bg-black/80 px-6 py-3 transition-colors"
             >
               Try demo
             </Link>
+            <p className="mt-3 font-mono text-[10px] tracking-[0.15em] text-charcoal/50 uppercase">
+              Accepts .stl, .obj, and .glb files
+            </p>
           </div>
         </div>
       </section>

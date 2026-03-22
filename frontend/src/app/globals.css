@@ -27,12 +27,21 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
-/* Hide scrollbar everywhere */
 * {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d4 #fafaf9;
 }
+
 *::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #fafaf9;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border: none;
 }
 
