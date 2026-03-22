@@ -1,3 +1,5 @@
 .factory
 .env
 .env.local
+slicer/cura/bin/
+slicer/cura/lib/

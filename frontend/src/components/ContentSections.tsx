@@ -188,7 +188,7 @@ export function ContentSections() {
 
             <div className="mt-10 md:mt-12 max-w-2xl space-y-5">
               <p className="font-sans text-lg md:text-xl font-medium leading-snug text-charcoal tracking-tight">
-                The ML-powered firearm identification and restriction layer for
+                The frontier firearm parts identification and restriction classifier for
                 slicer softwares.
               </p>
               <p className="font-sans text-base md:text-lg text-charcoal/75 leading-relaxed">
@@ -288,8 +288,7 @@ export function ContentSections() {
                 Views + model
               </h3>
               <p className="text-charcoal/75 leading-relaxed text-sm">
-                Fixed views of the part are rendered, then passed to the
-                classifier.
+                CuraEngine slices the files into G-Code, then passed to our model.
               </p>
             </div>
             <div
@@ -317,7 +316,7 @@ export function ContentSections() {
               Mesh-only checks don&apos;t catch everything, for example geometry
               hidden inside a shell can show up differently in toolpaths. This
               prototype is about the mesh and the handoff before print; G-code
-              is a related, separate problem.
+              represents the paths the printer will actually execute.
             </p>
           </div>
 
@@ -489,10 +488,10 @@ export function ContentSections() {
           </p>
 
           <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(28px,10px+2vw,48px)] font-semibold tracking-tight text-charcoal leading-[1.1] mb-4">
-            VERT evaluation
+            markey-v1-0326 Evaluations
           </h2>
           <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-10">
-            VERT (View-Enhanced Recognition Transformer) was trained on a
+            Markey was trained on a
             labeled dataset of gun and non-gun 3D-printable meshes rendered
             into fixed orthographic views before classification.
           </p>

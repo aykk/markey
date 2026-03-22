@@ -5,6 +5,7 @@ const path = require('path');
 const BUNDLED_CURA_DIR = path.resolve(__dirname, 'cura');
 const BUNDLED_CURA_BIN_DIR = path.join(BUNDLED_CURA_DIR, 'bin');
 const BUNDLED_CURA_LIB_DIR = path.join(BUNDLED_CURA_DIR, 'lib');
+const BUNDLED_EXTRUDER_DEF = path.join(__dirname, 'fdmextruder.def.json');
 const DEFAULT_DEFINITION_SEARCH_PATHS = [__dirname, BUNDLED_CURA_DIR, BUNDLED_CURA_BIN_DIR];
 
 function isExecutable(filePath) {
@@ -58,22 +59,47 @@ function resolveCuraEngineBinary({ curaEnginePath, cwd }) {
         return curaEnginePath;
     }
 
-    const candidates = [
+    const candidates = [];
+
+    if (process.platform === 'darwin') {
+        candidates.push('/Applications/UltiMaker Cura.app/Contents/Frameworks/CuraEngine');
+        if (process.arch === 'arm64') {
+            candidates.push(path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine.macos-arm64'));
+        }
+        if (process.arch === 'x64') {
+            candidates.push(path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine.macos-x86_64'));
+        }
+    }
+
+    if (process.platform === 'linux') {
+        if (process.arch === 'x64') {
+            candidates.push(path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine.linux-x86_64'));
+        }
+        candidates.push(path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine'));
+    }
+
+    candidates.push(
         path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine.exe'),
         path.join(BUNDLED_CURA_BIN_DIR, 'CuraEngine'),
         path.resolve(cwd, 'CuraEngine', 'build', 'Release', 'CuraEngine'),
         path.resolve(cwd, 'build', 'Release', 'CuraEngine'),
         path.resolve(cwd, 'CuraEngine', 'build', 'Release', 'CuraEngine.exe'),
         path.resolve(cwd, 'build', 'Release', 'CuraEngine.exe')
-    ];
+    );
 
     for (const candidate of candidates) {
+        if (!isExistingFile(candidate)) {
+            continue;
+        }
+        if (process.platform === 'darwin' && isElfBinary(candidate)) {
+            continue;
+        }
         if (isExecutable(candidate)) {
             return candidate;
         }
     }
 
-    return 'CuraEngine';
+    return '/usr/bin/CuraEngine';
 }
 
 function appendEnvPath(existingValue, nextValue) {
@@ -160,6 +186,27 @@ function resolveInputPath(inputPath, cwd) {
     return path.isAbsolute(inputPath) ? inputPath : path.resolve(cwd, inputPath);
 }
 
+function sanitizeCuraOutput(output = '') {
+    return output
+        .split('\n')
+        .map((line) => {
+            const trimmed = line.trim();
+            // Cura can emit a giant warning line that echoes every `-s` override.
+            // But sometimes the [ERROR] is appended to the end of this giant line.
+            if (trimmed.includes('-s machine_nozzle_offset_y=')) {
+                const errorIndex = trimmed.indexOf('[ERROR]');
+                if (errorIndex !== -1) {
+                    return trimmed.substring(errorIndex);
+                }
+                return ''; // Strip pure warning lines
+            }
+            return line;
+        })
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+}
+
 function sliceStlWithCuraEngine({
     stlPath,
     outputGcodePath,
@@ -178,16 +225,19 @@ function sliceStlWithCuraEngine({
     const resolvedStlPath = resolveInputPath(stlPath, cwd);
     const resolvedOutputGcodePath = resolveInputPath(outputGcodePath, cwd);
 
-    const args = [
-        'slice',
-        '-j', resolvedDefinitionPath,
-        '-l', resolvedStlPath,
-        '-o', resolvedOutputGcodePath
-    ];
+    const compatibilityDefaults = {};
+    const mergedSettings = { ...compatibilityDefaults, ...settings };
 
-    for (const [key, value] of Object.entries(settings)) {
+    const args = ['slice', '-j', resolvedDefinitionPath];
+    if (isExistingFile(BUNDLED_EXTRUDER_DEF)) {
+        args.push('-j', BUNDLED_EXTRUDER_DEF);
+    }
+
+    for (const [key, value] of Object.entries(mergedSettings)) {
         args.push('-s', `${key}=${value}`);
     }
+
+    args.push('-l', resolvedStlPath, '-o', resolvedOutputGcodePath);
 
     return new Promise((resolve, reject) => {
         const spawnConfig = resolveSpawnConfig({ curaEnginePath: resolvedCuraEnginePath, args, cwd });
@@ -212,7 +262,6 @@ function sliceStlWithCuraEngine({
         child.stderr.on('data', (chunk) => {
             const text = chunk.toString();
             stderr += text;
-            process.stderr.write(text);
         });
 
         child.on('error', (error) => {
@@ -242,7 +291,8 @@ function sliceStlWithCuraEngine({
             }
 
             if (code !== 0) {
-                reject(new Error(`CuraEngine exited with code ${code}\n${stderr}`));
+                const cleanedStderr = sanitizeCuraOutput(stderr);
+                reject(new Error(`CuraEngine exited with code ${code}\n${cleanedStderr}`));
                 return;
             }
 
