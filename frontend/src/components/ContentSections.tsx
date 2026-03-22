@@ -488,13 +488,14 @@ export function ContentSections() {
           </p>
 
           <h2 className="font-[family-name:var(--font-ibm-plex-mono)] text-[clamp(28px,10px+2vw,48px)] font-semibold tracking-tight text-charcoal leading-[1.1] mb-4">
-            markey-v1-0326 Evaluations
+            Markey-v1 Evaluations
           </h2>
           <p className="max-w-3xl text-charcoal/75 leading-relaxed text-sm md:text-base mb-10">
             Markey is an 0.6B embedding model that was trained on a
-            labeled dataset of gun and non-gun 3D-printable meshes in G-code.
-
-            You can find the dataset here on <a href="https://huggingface.co/datasets/jungter/gcode-to-model-gn" target="_blank" rel="noopener noreferrer" className="rounded-sm bg-charcoal/[0.09] px-1.5 py-0.5 text-charcoal transition-colors duration-300 ease-out hover:bg-charcoal/15">Huggingface</a>.
+            labeled dataset of gun and non-gun 3D-printable meshes in G-code. Its small footprint allows it to be ran on edge devices, while delivering frontier performance.
+            <br />
+            <br />
+            You can find Markey <a href="https://huggingface.co/jungter/markey-v1" target="_blank" rel="noopener noreferrer" className="rounded-sm bg-charcoal/[0.09] px-1.5 py-0.5 text-charcoal transition-colors duration-300 ease-out hover:bg-charcoal/15">here</a>, and the dataset used to train Markey <a href="https://huggingface.co/datasets/jungter/gcode-to-model-gn" target="_blank" rel="noopener noreferrer" className="rounded-sm bg-charcoal/[0.09] px-1.5 py-0.5 text-charcoal transition-colors duration-300 ease-out hover:bg-charcoal/15">here</a>.
           </p>
 
           {/* Key metrics strip */}
