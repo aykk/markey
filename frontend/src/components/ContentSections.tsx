@@ -262,6 +262,34 @@ export function ContentSections() {
             </span>
           </p>
 
+          <div className="mb-10 md:mb-14 max-w-3xl space-y-4 text-charcoal/75 leading-relaxed text-sm md:text-base">
+            <p>
+              Markey is a fine-tuned model built on{" "}
+              <strong className="font-medium text-charcoal/90">
+                Qwen3 0.6B
+              </strong>{" "}
+              embeddings. It was trained with a hybrid approach:{" "}
+              <strong className="font-medium text-charcoal/90">
+                29-dimensional G-code feature extraction
+              </strong>{" "}
+              and a projection layer on text embeddings. In this setup,
+              feature extraction does most of the heavy lifting, while the text
+              pathway serves as a supplementary classifier.
+            </p>
+            <p>
+              G-code is like assembly: it is human-readable, but not in a form
+              that makes it easy to reason about what the printed part will
+              look like. That plays to the tokenizer&apos;s strengths, tokens
+              like{" "}
+              <code className="font-mono text-[0.92em] text-charcoal/90">
+                G0
+              </code>{" "}
+              already land as natural string units, so we get reasonable results
+              from Qwen&apos;s tokenizer without building a custom one from
+              scratch.
+            </p>
+          </div>
+
           {/* Pipeline steps */}
           <div className="grid gap-0 border border-charcoal/40 bg-off-white md:grid-cols-3">
             <div
@@ -717,15 +745,22 @@ export function ContentSections() {
                 </span>
               </summary>
               <div className="border-t border-charcoal/15 px-6 pb-6 pt-4 md:px-8 md:pb-7 md:pt-5 text-charcoal/75 leading-relaxed text-sm md:text-[0.9375rem]">
-                No. Frontier language models are built for sequential human
-                language, not millions of lines of spatial coordinates. Standard
-                3D prints generate massive G-code files that quickly exceed the
-                memory limits (context windows) of general AI. Even when they can
-                ingest the file, they suffer from the &quot;Lost in the
-                Middle&quot; phenomenon, failing to find specific patterns in
-                highly repetitive data. Our model is purpose-built using
-                localized feature extraction to natively understand 3D spatial
-                sequences.
+                <p>
+                  No. Frontier language models are built for sequential human
+                  language, not millions of lines of spatial coordinates.
+                  Standard 3D prints generate massive G-code files that quickly
+                  exceed the memory limits (context windows) of general AI. Even
+                  when they can ingest the file, they suffer from the &quot;Lost
+                  in the Middle&quot; phenomenon, failing to find specific
+                  patterns in highly repetitive data. Our model is purpose-built
+                  using localized feature extraction to natively understand 3D
+                  spatial sequences.
+                </p>
+                <p className="mt-4">
+                  In our testing, all frontier models such as gpt-5.4-xhigh,
+                  opus-4.6-high, and gemini-3.1-pro hallucinated and outputted
+                  the wrong answer on what the G-code might be printing out.
+                </p>
               </div>
             </details>
 

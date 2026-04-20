@@ -86,6 +86,33 @@ export function HomePageClient() {
             <h2 className="font-mono text-xs tracking-[0.3em] text-charcoal/60 uppercase mb-6">
               How it works
             </h2>
+            <div className="mb-8 max-w-3xl space-y-4 text-charcoal/85 leading-relaxed text-sm">
+              <p>
+                Markey is a fine-tuned model built on{" "}
+                <strong className="font-medium text-charcoal">
+                  Qwen3 0.6B
+                </strong>{" "}
+                embeddings. It was trained with a hybrid approach:{" "}
+                <strong className="font-medium text-charcoal">
+                  29-dimensional G-code feature extraction
+                </strong>{" "}
+                and a projection layer on text embeddings. In this setup,
+                feature extraction does most of the heavy lifting, while the
+                text pathway serves as a supplementary classifier.
+              </p>
+              <p>
+                G-code is like assembly: it is human-readable, but not in a form
+                that makes it easy to reason about what the printed part will
+                look like. That plays to the tokenizer&apos;s strengths, tokens
+                like{" "}
+                <code className="font-mono text-[0.92em] text-charcoal">
+                  G0
+                </code>{" "}
+                already land as natural string units, so we get reasonable
+                results from Qwen&apos;s tokenizer without building a custom one
+                from scratch.
+              </p>
+            </div>
             <div className="space-y-8">
               <div>
                 <span className="font-mono text-xs tracking-widest text-charcoal/50">
