@@ -3,3 +3,4 @@
 .env.local
 slicer/cura/bin/
 slicer/cura/lib/
+customModel/data-prep
