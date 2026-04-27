@@ -29,6 +29,8 @@ const AUG_MANIFEST_PATH = path.join(DATA_PREP, 'augmented-manifest.json');
 const SPLICER_DIR = path.resolve(__dirname, '..', '..', 'slicer');
 const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
+const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
+const BATCH_SIZE_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB
 
 function parseArgs(argv) {
     const out = {};
@@ -62,6 +64,28 @@ function mulberry32(seed) {
 function randFloat(rand, lo, hi) { return lo + rand() * (hi - lo); }
 function randInt(rand, lo, hi) { return Math.floor(lo + rand() * (hi - lo + 1)); }
 function choice(rand, arr) { return arr[Math.floor(rand() * arr.length)]; }
+
+function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+
+function formatBar(fraction, width) {
+    const filled = Math.round(clamp(fraction, 0, 1) * width);
+    const empty = width - filled;
+    return '[' + '='.repeat(filled) + '>'.repeat(filled > 0 && filled < width ? 1 : 0) + ' '.repeat(Math.max(0, empty - (filled > 0 && filled < width ? 1 : 0))) + ']';
+}
+
+function renderProgress(tasks, perWorker, batchBytes) {
+    const totalSuccess = perWorker.reduce((s, w) => s + w.success, 0);
+    const totalFail = perWorker.reduce((s, w) => s + w.fail, 0);
+    const done = totalSuccess + totalFail;
+    const total = tasks.length;
+    const fraction = total > 0 ? done / total : 0;
+    const pct = (fraction * 100).toFixed(0);
+    const bar = formatBar(fraction, 45);
+    const parts = perWorker.map((w, i) => `w${i + 1}: ${w.success} ok, ${w.fail} fail`);
+    const lines = [`${bar} ${pct}%  ${done}/${total}  (${totalSuccess} ok, ${totalFail} fail)`, `  ${parts.join('  •  ')}`];
+    if (batchBytes > 0) lines.push(`  Upload queue: ${(batchBytes / 1e9).toFixed(1)} GB / ${(BATCH_SIZE_BYTES / 1e9).toFixed(0)} GB`);
+    return lines.join('\n');
+}
 
 function pickPythonBin() {
     if (process.env.PYTHON) return process.env.PYTHON;
@@ -127,6 +151,32 @@ function buildTasks({ manifest, start, end, variantsPerStl, seed, label, doneKey
     return tasks;
 }
 
+/**
+ * Upload every file in `fileList`, then delete them from local disk.
+ * Resolves when done.
+ */
+async function uploadAndEvict(entries, pythonBin) {
+    if (entries.length === 0) return;
+    const tmpList = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hf-batch-')), 'batch.json');
+    fs.writeFileSync(tmpList, JSON.stringify(entries));
+    try {
+        const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList]);
+        // Parse last line of stdout as JSON result
+        const lines = res.stdout.trim().split('\n').filter(Boolean);
+        const result = JSON.parse(lines[lines.length - 1]);
+        for (const fp of result.uploaded) {
+            try { fs.unlinkSync(fp); } catch (_) { /* ignore */ }
+        }
+        if (result.failed.length > 0) {
+            console.warn(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
+        }
+    } catch (err) {
+        console.error(`[UPLOAD ERROR] ${err.message}`);
+    } finally {
+        try { fs.rmSync(path.dirname(tmpList), { recursive: true, force: true }); } catch (_) { /* ignore */ }
+    }
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2));
     const VARIANTS_PER_STL = parseInt(args.variants || '5', 10);
@@ -172,11 +222,18 @@ async function main() {
     });
     console.log(`Pending tasks:   ${tasks.length}`);
 
-    let success = 0;
-    let failed = 0;
-    let missing = 0;
     let cursor = 0;
     let savesSinceFlush = 0;
+    let batchEntries = [];       // {path, label} objects for the current upload batch
+    let batchBytes = 0;          // total file size of batchEntries
+    const perWorker = [];
+    for (let w = 0; w < CONCURRENCY; w++) perWorker.push({ success: 0, fail: 0 });
+
+    // Render progress bar every 2s on a single line (carriage return)
+    const progressTimer = setInterval(() => {
+        const out = renderProgress(tasks, perWorker, batchBytes);
+        process.stdout.write('\r\x1b[K' + out.replace(/\n/g, '\n\r\x1b[K'));
+    }, 2000);
 
     const saveManifest = () => fs.writeFileSync(AUG_MANIFEST_PATH, JSON.stringify(augManifest, null, 2));
 
@@ -187,7 +244,7 @@ async function main() {
             const task = tasks[idx];
 
             if (!fs.existsSync(task.stlPath)) {
-                missing++;
+                perWorker[workerId - 1].fail++;
                 continue;
             }
 
@@ -195,7 +252,6 @@ async function main() {
             const outGcode = path.join(OUTPUT_DIR, `${task.key}.gcode`);
 
             if (DRY_RUN) {
-                console.log(`[DRY w${workerId}] ${task.key}: axis=${task.scaleAxis} scale=${task.scaleFactor}`);
                 augManifest.push({
                     key: task.key,
                     source_index: task.i + 1,
@@ -207,6 +263,7 @@ async function main() {
                     settings: task.settings,
                     gcode: null,
                 });
+                perWorker[workerId - 1].success++;
                 continue;
             }
 
@@ -217,7 +274,7 @@ async function main() {
             ]);
             if (augRes.status !== 0) {
                 console.error(`[AUG FAIL w${workerId}] ${task.key}: ${(augRes.stderr || augRes.stdout || '').trim()}`);
-                failed++;
+                perWorker[workerId - 1].fail++;
                 continue;
             }
 
@@ -243,12 +300,27 @@ async function main() {
                     settings: task.settings,
                     gcode: path.basename(outGcode),
                 });
-                success++;
                 savesSinceFlush++;
-                console.log(`[OK ${success}/${tasks.length} w${workerId}] ${task.key} -> ${path.basename(outGcode)}`);
+
+                // Track file size for 50 GB upload batching
+                try {
+                    const stat = fs.statSync(outGcode);
+                    batchEntries.push({ path: outGcode, label: task.label });
+                    batchBytes += stat.size;
+                } catch (_) { /* file may have been cleaned up */ }
+
+                // Flush upload batch when threshold is reached
+                if (batchBytes >= BATCH_SIZE_BYTES) {
+                    const toUpload = batchEntries;
+                    batchEntries = [];
+                    batchBytes = 0;
+                    await uploadAndEvict(toUpload, pythonBin);
+                }
+
+                perWorker[workerId - 1].success++;
             } catch (err) {
-                failed++;
                 console.error(`[SLICE FAIL w${workerId}] ${task.key}: ${err.message.split('\n')[0]}`);
+                perWorker[workerId - 1].fail++;
             } finally {
                 try { fs.unlinkSync(tmpStl); } catch (_) { /* ignore */ }
             }
@@ -264,13 +336,24 @@ async function main() {
     for (let w = 0; w < CONCURRENCY; w++) workers.push(worker(w + 1));
     await Promise.all(workers);
 
+    clearInterval(progressTimer);
+
+    // Flush any remaining files in the batch
+    if (batchEntries.length > 0) {
+        console.log(`Flushing final upload batch: ${(batchBytes / 1e9).toFixed(3)} GB...`);
+        await uploadAndEvict(batchEntries, pythonBin);
+        batchEntries = [];
+        batchBytes = 0;
+    }
+
     saveManifest();
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) { /* ignore */ }
 
+    const totalSuccess = perWorker.reduce((s, w) => s + w.success, 0);
+    const totalFail = perWorker.reduce((s, w) => s + w.fail, 0);
     console.log('\n=== Phase 1 summary ===');
-    console.log(`Converted: ${success}`);
-    console.log(`Missing:   ${missing}`);
-    console.log(`Failed:    ${failed}`);
+    console.log(`Converted: ${totalSuccess}`);
+    console.log(`Failed:    ${totalFail}`);
     console.log(`Manifest:  ${AUG_MANIFEST_PATH} (${augManifest.length} entries)`);
 }
 

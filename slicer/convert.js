@@ -254,9 +254,7 @@ function sliceStlWithCuraEngine({
         }, timeoutMs);
 
         child.stdout.on('data', (chunk) => {
-            const text = chunk.toString();
-            stdout += text;
-            process.stdout.write(text);
+            stdout += chunk.toString();
         });
 
         child.stderr.on('data', (chunk) => {

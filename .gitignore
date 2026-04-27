@@ -4,3 +4,4 @@
 slicer/cura/bin/
 slicer/cura/lib/
 customModel/data-prep
+node_modules
