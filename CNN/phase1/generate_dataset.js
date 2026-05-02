@@ -15,7 +15,6 @@
  */
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -31,6 +30,7 @@ const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
 const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
 const BATCH_SIZE_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB
+const TMP_DIR = 'G:\\markeyTemp';
 
 function parseArgs(argv) {
     const out = {};
@@ -157,17 +157,19 @@ function buildTasks({ manifest, start, end, variantsPerStl, seed, label, doneKey
  */
 async function uploadAndEvict(entries, pythonBin) {
     if (entries.length === 0) return;
-    const tmpList = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hf-batch-')), 'batch.json');
+    const tmpList = path.join(fs.mkdtempSync(path.join(TMP_DIR, 'hf-batch-')), 'batch.json');
     fs.writeFileSync(tmpList, JSON.stringify(entries));
     try {
         const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList]);
-        // Parse last line of stdout as JSON result
+        // Find the line prefixed with ___RESULT___: to get the JSON result
+        const prefix = '___RESULT___:';
         const lines = res.stdout.trim().split('\n').filter(Boolean);
-        const result = JSON.parse(lines[lines.length - 1]);
-        for (const fp of result.uploaded) {
+        const resultLine = lines.find(l => l.startsWith(prefix));
+        const result = JSON.parse(resultLine ? resultLine.slice(prefix.length) : '{}');
+        for (const fp of result.uploaded || []) {
             try { fs.unlinkSync(fp); } catch (_) { /* ignore */ }
         }
-        if (result.failed.length > 0) {
+        if (result.failed && result.failed.length > 0) {
             console.warn(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
         }
     } catch (err) {
@@ -189,6 +191,7 @@ async function main() {
     const DRY_RUN = args['dry-run'] === 'true';
 
     ensureDir(OUTPUT_DIR);
+    ensureDir(TMP_DIR);
 
     const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
     const end = END ?? manifest.length;
@@ -203,7 +206,7 @@ async function main() {
     }
     const doneKeys = new Set(augManifest.map((e) => e.key));
 
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'stl-aug-'));
+    const tmpDir = fs.mkdtempSync(path.join(TMP_DIR, 'stl-aug-'));
     const pythonBin = pickPythonBin();
 
     console.log(`Source manifest: ${manifest.length} entries`);
@@ -222,10 +225,66 @@ async function main() {
     });
     console.log(`Pending tasks:   ${tasks.length}`);
 
+    // === Reconciliation: remove local files already on HF ===
+    console.log('Checking which files are already uploaded to HF...');
+    const reconcileRes = await runPython(pythonBin, [UPLOAD_SCRIPT, '--list-uploaded']);
+    let uploadedSet = new Set();
+    try {
+        const prefix = '___RESULT___:';
+        const lines = reconcileRes.stdout.trim().split('\n').filter(Boolean);
+        const resultLine = lines.find(l => l.startsWith(prefix));
+        if (resultLine) {
+            const parsed = JSON.parse(resultLine.slice(prefix.length));
+            if (Array.isArray(parsed)) {
+                uploadedSet = new Set(parsed);
+            }
+        }
+    } catch (_) { /* ignore parse errors, just don't purge */ }
+    let reconciledCount = 0;
+    if (uploadedSet.size > 0) {
+        for (const entry of augManifest) {
+            if (!entry.gcode) continue;
+            const gcodePath = path.join(OUTPUT_DIR, entry.gcode);
+            if (uploadedSet.has(entry.gcode) && fs.existsSync(gcodePath)) {
+                try { fs.unlinkSync(gcodePath); reconciledCount++; } catch (_) { /* ignore */ }
+            }
+        }
+        // Also sweep any orphan .gcode files matching uploaded names
+        if (fs.existsSync(OUTPUT_DIR)) {
+            for (const f of fs.readdirSync(OUTPUT_DIR)) {
+                if (f.endsWith('.gcode') && uploadedSet.has(f) && fs.existsSync(path.join(OUTPUT_DIR, f))) {
+                    try { fs.unlinkSync(path.join(OUTPUT_DIR, f)); reconciledCount++; } catch (_) { /* ignore */ }
+                }
+            }
+        }
+        console.log(`Reconciled: removed ${reconciledCount} locally cached files already on HF`);
+    }
+
+    // Re-scan local files that still need uploading
+    let batchEntries = [];
+    let batchBytes = 0;
+    if (fs.existsSync(OUTPUT_DIR)) {
+        for (const f of fs.readdirSync(OUTPUT_DIR)) {
+            if (!f.endsWith('.gcode')) continue;
+            const fPath = path.join(OUTPUT_DIR, f);
+            try {
+                const stat = fs.statSync(fPath);
+                // Find the matching augManifest entry to get the label
+                const entry = augManifest.find(e => e.gcode === f);
+                if (entry) {
+                    batchEntries.push({ path: fPath, label: entry.label || 1 });
+                    batchBytes += stat.size;
+                }
+            } catch (_) { /* ignore */ }
+        }
+    }
+    if (batchEntries.length > 0) {
+        console.log(`Resuming with ${batchEntries.length} leftover files (${(batchBytes / 1e9).toFixed(3)} GB) already in OUTPUT_DIR`);
+    }
+
     let cursor = 0;
     let savesSinceFlush = 0;
-    let batchEntries = [];       // {path, label} objects for the current upload batch
-    let batchBytes = 0;          // total file size of batchEntries
+    let batchLock = Promise.resolve();
     const perWorker = [];
     for (let w = 0; w < CONCURRENCY; w++) perWorker.push({ success: 0, fail: 0 });
 
@@ -302,20 +361,23 @@ async function main() {
                 });
                 savesSinceFlush++;
 
-                // Track file size for 50 GB upload batching
-                try {
-                    const stat = fs.statSync(outGcode);
-                    batchEntries.push({ path: outGcode, label: task.label });
-                    batchBytes += stat.size;
-                } catch (_) { /* file may have been cleaned up */ }
+                // Track file size and flush upload batch — serialized via batchLock
+                batchLock = batchLock.then(async () => {
+                    try {
+                        const stat = fs.statSync(outGcode);
+                        batchEntries.push({ path: outGcode, label: task.label });
+                        batchBytes += stat.size;
+                    } catch (_) { /* file may have been cleaned up */ }
 
-                // Flush upload batch when threshold is reached
-                if (batchBytes >= BATCH_SIZE_BYTES) {
-                    const toUpload = batchEntries;
-                    batchEntries = [];
-                    batchBytes = 0;
-                    await uploadAndEvict(toUpload, pythonBin);
-                }
+                    if (batchBytes >= BATCH_SIZE_BYTES) {
+                        const toUpload = batchEntries;
+                        batchEntries = [];
+                        batchBytes = 0;
+                        await uploadAndEvict(toUpload, pythonBin);
+                    }
+                });
+
+                await batchLock;
 
                 perWorker[workerId - 1].success++;
             } catch (err) {
