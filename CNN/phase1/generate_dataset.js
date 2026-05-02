@@ -29,7 +29,7 @@ const SPLICER_DIR = path.resolve(__dirname, '..', '..', 'slicer');
 const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
 const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
-const BATCH_SIZE_BYTES = 50 * 1024 * 1024 * 1024; // 50 GB
+const BATCH_SIZE_BYTES = 20 * 1024 * 1024 * 1024; // 20 GB
 const TMP_DIR = 'G:\\markeyTemp';
 
 function parseArgs(argv) {
