@@ -1,7 +1,8 @@
 """Read a batch of gcode files, parse them (Phase 2), and upload to the HF
-dataset repo ``jungter/augmented-g-code`` as:
-  - Raw gcode files under ``gcode/``
-  - A Parquet shard under ``data/`` with columns ``toolpath_json`` and ``label``
+dataset repo ``jungter/augmented-g-code`` as Parquet shards under ``data/``
+with columns ``toolpath_json`` and ``label``.
+
+Raw .gcode files are NOT uploaded — only the parsed numerical toolpaths.
 
 Phase 2 parsing strips all non-movement commands (temperatures, comments,
 machine limits) and extracts absolute-coordinate toolpaths from G0/G1/G2/G3.
@@ -12,11 +13,12 @@ import json
 import os
 import sys
 import tempfile
+import time
 
-TMP_DIR = "G:\\markeyTemp"
+TMP_DIR = "D:\\markeyTemp"
+PARSED_TMP_DIR = "D:\\markeyTemp\\markeyTemp1"
 RESULT_PREFIX = "___RESULT___:"
 
-from datasets import Dataset
 from huggingface_hub import HfApi
 
 # Phase 2 parser
@@ -31,9 +33,8 @@ def _parse_one(file_path: str) -> dict:
     Returns only lightweight metadata; toolpath JSON is written to a temp file."""
     toolpaths = parse_gcode_file(file_path)
     filename = os.path.basename(file_path)
-    # Write parsed JSON to a temp file instead of returning it in memory
     tmp = tempfile.NamedTemporaryFile(
-        dir="H:\\markeyTempH", suffix=".parsed", delete=False, mode="w"
+        dir=PARSED_TMP_DIR, suffix=".parsed", delete=False, mode="w"
     )
     json.dump(toolpaths, tmp)
     tmp.close()
@@ -46,21 +47,6 @@ def _parse_one(file_path: str) -> dict:
 
 
 def main() -> int:
-    # --- list-uploaded mode (no side effects) ---
-    if len(sys.argv) > 1 and sys.argv[1] == "--list-uploaded":
-        import huggingface_hub
-        huggingface_hub.logging.set_verbosity_error()
-        api = HfApi()
-        try:
-            files = api.list_repo_files(REPO_ID, repo_type="dataset")
-            gcode_files = [f for f in files if f.startswith("gcode/")]
-            print(f"{RESULT_PREFIX}{json.dumps([os.path.basename(f) for f in gcode_files])}")
-        except Exception as e:
-            print(f"{RESULT_PREFIX}{json.dumps({'error': str(e)})}")
-            return 1
-        return 0
-
-    # --- normal upload mode ---
     if len(sys.argv) > 1:
         input_path = sys.argv[1]
         with open(input_path, "r") as f:
@@ -73,7 +59,7 @@ def main() -> int:
         return 0
 
     import shutil
-    from concurrent.futures import ProcessPoolExecutor, as_completed
+    from concurrent.futures import ProcessPoolExecutor
 
     import huggingface_hub
     import pyarrow as pa
@@ -82,20 +68,22 @@ def main() -> int:
     huggingface_hub.logging.set_verbosity_error()
     api = HfApi()
 
-    UPLOAD_THRESHOLD = 5 * 1024 * 1024 * 1024  # 25 GB
+    # Flush a parquet shard every ~10GB of raw gcode (so a 20GB JS batch
+    # produces ~2 commits instead of one giant one).
+    UPLOAD_THRESHOLD = 10 * 1024 * 1024 * 1024  # 10 GB
 
+    os.makedirs(TMP_DIR, exist_ok=True)
+    os.makedirs(PARSED_TMP_DIR, exist_ok=True)
     staging_dir = tempfile.mkdtemp(dir=TMP_DIR, prefix="hf-stage-")
-    gcode_staging = os.path.join(staging_dir, "gcode")
     data_staging = os.path.join(staging_dir, "data")
-    os.makedirs(gcode_staging, exist_ok=True)
-    os.makedirs("H:\\markeyTempH", exist_ok=True)
     os.makedirs(data_staging, exist_ok=True)
 
-    # Determine starting shard number
+    # Determine starting shard number from existing parquet files on the repo
     try:
         existing_files = api.list_repo_files(REPO_ID, repo_type="dataset")
         shard_num = len([f for f in existing_files if f.startswith("data/") and f.endswith(".parquet")])
-    except Exception:
+    except Exception as e:
+        print(f"  WARN: list_repo_files failed: {e}", file=sys.stderr)
         shard_num = 0
 
     valid_entries: list[dict] = []
@@ -107,17 +95,41 @@ def main() -> int:
             continue
         valid_entries.append(entry)
 
-    num_workers = 12
+    # Worker count is bounded; default to 4. Override via HF_PARSE_WORKERS env
+    # var (set by the JS caller based on --concurrency) so we don't compete
+    # with CuraEngine instances for RAM.
+    try:
+        num_workers = max(1, int(os.environ.get("HF_PARSE_WORKERS", "4")))
+    except ValueError:
+        num_workers = 4
     print(f"  Parsing {len(valid_entries)} files with {num_workers} workers...", file=sys.stderr)
 
     uploaded: list[str] = []
     failed: list[dict] = list(skipped)
 
-    # Accumulate parsed results; flush+upload every ~25GB of raw gcode
     batch_parsed: list[str] = []   # .parsed temp file paths
     batch_labels: list[int] = []
-    batch_uploaded: list[str] = []
+    batch_originals: list[str] = []  # raw gcode source paths to delete after success
     batch_bytes = 0                # tracked raw gcode bytes
+
+    def _upload_with_retry(folder: str, message: str, attempts: int = 3) -> None:
+        last_err: Exception | None = None
+        for i in range(attempts):
+            try:
+                api.upload_folder(
+                    folder_path=folder,
+                    repo_id=REPO_ID,
+                    repo_type="dataset",
+                    commit_message=message,
+                )
+                return
+            except Exception as e:
+                last_err = e
+                wait = 15 * (i + 1)
+                print(f"\n  upload attempt {i + 1}/{attempts} failed: {e}; retrying in {wait}s", file=sys.stderr)
+                time.sleep(wait)
+        assert last_err is not None
+        raise last_err
 
     def flush_batch():
         nonlocal shard_num, batch_bytes
@@ -130,60 +142,84 @@ def main() -> int:
         parquet_path = os.path.join(data_staging, f"batch_{shard_num:04d}.parquet")
         writer = pq.ParquetWriter(parquet_path, schema)
 
+        # Stream rows in small chunks (~64MB JSON) to keep memory bounded.
+        # Smaller chunks cost a bit of parquet write throughput but cap peak
+        # RSS during flush — important when CuraEngine slicers are still
+        # holding GBs in the parent JS process.
+        CHUNK_BYTES = 64 * 1024 * 1024
         chunk_jsons: list[str] = []
-        chunk_labels_list: list[int] = []
+        chunk_labels: list[int] = []
         chunk_bytes = 0
-        CHUNK_BYTES = 5 * 1024 * 1024 * 1024
 
         for j, pf in enumerate(batch_parsed):
-            with open(pf, "r") as f:
-                tj = f.read()
-            os.unlink(pf)
+            try:
+                with open(pf, "r") as f:
+                    tj = f.read()
+            except OSError as e:
+                print(f"  WARN: parsed temp missing: {pf}: {e}", file=sys.stderr)
+                continue
+            try:
+                os.unlink(pf)
+            except OSError:
+                pass
             chunk_jsons.append(tj)
-            chunk_labels_list.append(batch_labels[j])
+            chunk_labels.append(batch_labels[j])
             chunk_bytes += len(tj)
             if chunk_bytes >= CHUNK_BYTES or j == len(batch_parsed) - 1:
-                table = pa.table({"toolpath_json": chunk_jsons, "label": chunk_labels_list}, schema=schema)
+                table = pa.table(
+                    {"toolpath_json": chunk_jsons, "label": chunk_labels},
+                    schema=schema,
+                )
                 writer.write_table(table)
                 chunk_jsons.clear()
-                chunk_labels_list.clear()
+                chunk_labels.clear()
                 chunk_bytes = 0
 
         writer.close()
 
-        api.upload_folder(
-            folder_path=staging_dir,
-            repo_id=REPO_ID,
-            repo_type="dataset",
-            commit_message=f"Upload batch {shard_num}: {len(batch_uploaded)} files",
-        )
-        print(f"  Committed batch {shard_num}: {len(batch_uploaded)} gcode files + data/batch_{shard_num:04d}.parquet", file=sys.stderr)
+        try:
+            psize = os.path.getsize(parquet_path)
+            print(f"  Parquet shard {shard_num} built ({psize / 1e9:.2f} GB). Uploading...", file=sys.stderr)
+        except OSError:
+            pass
 
-        # Delete uploaded raw gcode files from staging
-        for fp in batch_uploaded:
-            lp = os.path.join(gcode_staging, os.path.basename(fp))
-            try:
-                os.unlink(lp)
-            except OSError:
-                pass
-        
-        # Delete the uploaded parquet file to avoid re-uploading it in the next batch
+        _upload_with_retry(
+            folder=staging_dir,
+            message=f"Upload batch {shard_num}: {len(batch_originals)} parsed gcode entries",
+        )
+        print(f"  Committed batch {shard_num}: data/batch_{shard_num:04d}.parquet ({len(batch_originals)} entries)", file=sys.stderr)
+
+        # Remove the just-uploaded parquet so the next shard's upload_folder
+        # doesn't try to re-push it.
         try:
             os.unlink(parquet_path)
         except OSError:
             pass
 
-        # Also delete local copies
-        for fp in batch_uploaded:
+        # Delete the source .gcode files NOW, while we know this shard
+        # committed successfully. If Python crashes during a later flush, these
+        # files won't be re-queued and re-uploaded as duplicates on the next
+        # run. JS still calls unlinkSync on them as a safety net.
+        deleted = 0
+        for fp in batch_originals:
             try:
                 os.unlink(fp)
+                deleted += 1
             except OSError:
                 pass
+        print(f"  Deleted {deleted}/{len(batch_originals)} local source files for shard {shard_num}", file=sys.stderr)
 
-        uploaded.extend(batch_uploaded)
+        # Emit a per-shard event on stdout so the JS caller can mark these
+        # entries `uploaded: true` in augmented-manifest.json immediately,
+        # without waiting for this Python process to exit.
+        shard_payload = {"shard": shard_num, "uploaded": list(batch_originals)}
+        print(f"___SHARD___:{json.dumps(shard_payload)}", flush=True)
+
+        uploaded.extend(batch_originals)
+
         batch_parsed.clear()
         batch_labels.clear()
-        batch_uploaded.clear()
+        batch_originals.clear()
         batch_bytes = 0
 
     import signal
@@ -193,7 +229,6 @@ def main() -> int:
     def _signal_handler(signum, frame):
         nonlocal shutting_down
         if shutting_down:
-            # Second Ctrl+C: force exit
             sys.stderr.write("\n  Force exit.\n")
             sys.exit(1)
         shutting_down = True
@@ -202,17 +237,13 @@ def main() -> int:
     signal.signal(signal.SIGINT, _signal_handler)
     signal.signal(signal.SIGTERM, _signal_handler)
 
-    # Submit tasks in limited batches so temp files don't explode on disk.
-    # Each worker produces ~2.3x its raw file in .parsed temp. With 16 workers
-    # and a 25GB threshold we keep at most ~25GB + (16 * largest file) on disk.
-    SUBMIT_BATCH = num_workers * 4  # keep a small lookahead buffer
+    SUBMIT_BATCH = num_workers * 4
 
     with ProcessPoolExecutor(max_workers=num_workers) as pool:
         total = len(valid_entries)
         entry_idx = 0
         done_count = 0
 
-        # Seed initial batch of futures
         pending: dict = {}
         while entry_idx < total and len(pending) < SUBMIT_BATCH:
             e = valid_entries[entry_idx]
@@ -220,16 +251,18 @@ def main() -> int:
             entry_idx += 1
 
         while pending and not shutting_down:
-            # Wait for next completed future
             done_futures = []
             for fut in list(pending.keys()):
                 if fut.done():
                     done_futures.append(fut)
 
             if not done_futures:
-                # None done yet, wait for the first one
                 import concurrent.futures
-                done_futures = [concurrent.futures.wait(pending, return_when=concurrent.futures.FIRST_COMPLETED).done.pop()]
+                done_futures = [
+                    concurrent.futures.wait(
+                        pending, return_when=concurrent.futures.FIRST_COMPLETED
+                    ).done.pop()
+                ]
 
             for future in done_futures:
                 entry = pending.pop(future)
@@ -238,16 +271,9 @@ def main() -> int:
                     result = future.result()
                     batch_parsed.append(result["parsed_path"])
                     batch_labels.append(entry["label"])
-                    
+
                     file_path = result["file_path"]
-                    batch_uploaded.append(file_path)
-                    
-                    filename = os.path.basename(file_path)
-                    link_path = os.path.join(gcode_staging, filename)
-                    try:
-                        os.symlink(file_path, link_path)
-                    except OSError:
-                        shutil.copy2(file_path, link_path)
+                    batch_originals.append(file_path)
 
                     try:
                         batch_bytes += os.path.getsize(file_path)
@@ -256,20 +282,19 @@ def main() -> int:
                 except Exception as e:
                     failed.append({"file": entry["path"], "error": str(e)})
 
-                # Submit next task to keep workers busy
                 if entry_idx < total:
                     e = valid_entries[entry_idx]
                     pending[pool.submit(_parse_one, e["path"])] = e
                     entry_idx += 1
 
-            sys.stderr.write(f"\r  Parsing: {done_count}/{total} ({done_count * 100 // total}%) batch: {batch_bytes / 1e9:.1f}/{UPLOAD_THRESHOLD / 1e9:.0f} GB")
+            sys.stderr.write(
+                f"\r  Parsing: {done_count}/{total} ({done_count * 100 // total}%) batch: {batch_bytes / 1e9:.1f}/{UPLOAD_THRESHOLD / 1e9:.0f} GB"
+            )
             sys.stderr.flush()
 
-            # Flush when accumulated raw gcode hits threshold
             if batch_bytes >= UPLOAD_THRESHOLD:
                 flush_batch()
 
-    # Final flush (also handles partial batch on shutdown)
     flush_batch()
 
     if shutting_down:
@@ -277,7 +302,6 @@ def main() -> int:
     else:
         print(f"\n  Total uploaded: {len(uploaded)}, failed: {len(failed)}", file=sys.stderr)
 
-    # Clean up any remaining .parsed temp files
     for pf in batch_parsed:
         try:
             os.unlink(pf)

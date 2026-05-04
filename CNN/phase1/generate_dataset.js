@@ -9,9 +9,13 @@
  *      random combination of layer height, infill density, infill pattern
  *      and wall (perimeter) count.
  *
- * Supports parallel workers via --concurrency N (default 1). Each worker
- * drives its own CuraEngine subprocess, so throughput scales roughly with
- * physical CPU cores.
+ * The augmented manifest at customModel/data-prep/augmented-manifest.json is
+ * the single source of truth: each entry records `gcode` (filename in
+ * OUTPUT_DIR) and `uploaded` (true once the parsed parquet shard is committed
+ * to HF). On every startup we reconcile OUTPUT_DIR against this manifest:
+ *   - .gcode files whose manifest entry has uploaded=true  -> deleted
+ *   - .gcode files without any manifest entry              -> deleted (orphan)
+ *   - everything else                                       -> queued for upload
  */
 
 const fs = require('fs');
@@ -30,7 +34,10 @@ const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
 const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
 const BATCH_SIZE_BYTES = 20 * 1024 * 1024 * 1024; // 20 GB
-const TMP_DIR = 'G:\\markeyTemp';
+const TMP_DIR = 'D:\\markeyTemp';
+
+const SHARD_PREFIX = '___SHARD___:';
+const RESULT_PREFIX = '___RESULT___:';
 
 function parseArgs(argv) {
     const out = {};
@@ -97,16 +104,63 @@ function ensureDir(p) {
     if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
 }
 
-function runPython(pythonBin, argsList) {
+function runPython(pythonBin, argsList, { streamStderr = false, onStdoutLine = null, env = null } = {}) {
     return new Promise((resolve) => {
-        const child = spawn(pythonBin, argsList, { stdio: ['ignore', 'pipe', 'pipe'] });
+        const child = spawn(pythonBin, argsList, {
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: env ? { ...process.env, ...env } : process.env,
+        });
         let stdout = '';
         let stderr = '';
-        child.stdout.on('data', (c) => { stdout += c.toString(); });
-        child.stderr.on('data', (c) => { stderr += c.toString(); });
+        let stdoutBuf = '';
+        child.stdout.on('data', (c) => {
+            const s = c.toString();
+            stdout += s;
+            if (onStdoutLine) {
+                stdoutBuf += s;
+                let idx;
+                while ((idx = stdoutBuf.indexOf('\n')) !== -1) {
+                    const line = stdoutBuf.slice(0, idx).replace(/\r$/, '');
+                    stdoutBuf = stdoutBuf.slice(idx + 1);
+                    try { onStdoutLine(line); } catch (_) { /* ignore */ }
+                }
+            }
+        });
+        child.stderr.on('data', (c) => {
+            const s = c.toString();
+            stderr += s;
+            if (streamStderr) process.stderr.write(s);
+        });
         child.on('error', (err) => resolve({ status: -1, stdout, stderr: stderr + err.message }));
-        child.on('close', (code) => resolve({ status: code, stdout, stderr }));
+        child.on('close', (code) => {
+            if (onStdoutLine && stdoutBuf.length > 0) {
+                try { onStdoutLine(stdoutBuf); } catch (_) { /* ignore */ }
+            }
+            resolve({ status: code, stdout, stderr });
+        });
     });
+}
+
+function cleanupOrphanTmp() {
+    if (!fs.existsSync(TMP_DIR)) return;
+    let removed = 0;
+    for (const name of fs.readdirSync(TMP_DIR)) {
+        if (name.startsWith('hf-stage-') || name.startsWith('hf-batch-') || name.startsWith('stl-aug-')) {
+            try {
+                fs.rmSync(path.join(TMP_DIR, name), { recursive: true, force: true });
+                removed++;
+            } catch (_) { /* ignore */ }
+        }
+    }
+    const parsedDir = path.join(TMP_DIR, 'markeyTemp1');
+    if (fs.existsSync(parsedDir)) {
+        for (const name of fs.readdirSync(parsedDir)) {
+            if (name.endsWith('.parsed')) {
+                try { fs.unlinkSync(path.join(parsedDir, name)); removed++; } catch (_) { /* ignore */ }
+            }
+        }
+    }
+    if (removed > 0) console.log(`Startup cleanup: removed ${removed} orphan tmp entries`);
 }
 
 function buildTasks({ manifest, start, end, variantsPerStl, seed, label, doneKeys }) {
@@ -151,24 +205,31 @@ function buildTasks({ manifest, start, end, variantsPerStl, seed, label, doneKey
     return tasks;
 }
 
-/**
- * Upload every file in `fileList`, then delete them from local disk.
- * Resolves when done.
- */
-async function uploadAndEvict(entries, pythonBin) {
+async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorkers } = {}) {
     if (entries.length === 0) return;
     const tmpList = path.join(fs.mkdtempSync(path.join(TMP_DIR, 'hf-batch-')), 'batch.json');
     fs.writeFileSync(tmpList, JSON.stringify(entries));
     try {
-        const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList]);
-        // Find the line prefixed with ___RESULT___: to get the JSON result
-        const prefix = '___RESULT___:';
+        const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList], {
+            streamStderr: true,
+            env: parseWorkers ? { HF_PARSE_WORKERS: String(parseWorkers) } : null,
+            onStdoutLine: (line) => {
+                if (!line.startsWith(SHARD_PREFIX)) return;
+                try {
+                    const payload = JSON.parse(line.slice(SHARD_PREFIX.length));
+                    if (Array.isArray(payload.uploaded) && payload.uploaded.length && onShardUploaded) {
+                        onShardUploaded(payload.uploaded);
+                    }
+                } catch (_) { /* ignore parse errors */ }
+            },
+        });
         const lines = res.stdout.trim().split('\n').filter(Boolean);
-        const resultLine = lines.find(l => l.startsWith(prefix));
-        const result = JSON.parse(resultLine ? resultLine.slice(prefix.length) : '{}');
-        for (const fp of result.uploaded || []) {
-            try { fs.unlinkSync(fp); } catch (_) { /* ignore */ }
+        const resultLine = lines.find(l => l.startsWith(RESULT_PREFIX));
+        if (!resultLine) {
+            console.error(`[UPLOAD ERROR] Python exited (status=${res.status}) with no result line.`);
+            return;
         }
+        const result = JSON.parse(resultLine.slice(RESULT_PREFIX.length));
         if (result.failed && result.failed.length > 0) {
             console.warn(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
         }
@@ -188,10 +249,13 @@ async function main() {
     const TIMEOUT_MS = parseInt(args.timeout || (10 * 60 * 1000).toString(), 10);
     const LABEL = parseInt(args.label || '1', 10);
     const CONCURRENCY = Math.max(1, parseInt(args.concurrency || '1', 10));
+    const PARSE_WORKERS = Math.max(1, parseInt(args['parse-workers'] || String(Math.max(2, Math.min(4, CONCURRENCY))), 10));
     const DRY_RUN = args['dry-run'] === 'true';
 
     ensureDir(OUTPUT_DIR);
     ensureDir(TMP_DIR);
+
+    cleanupOrphanTmp();
 
     const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
     const end = END ?? manifest.length;
@@ -213,6 +277,7 @@ async function main() {
     console.log(`Range:           ${START}..${end}`);
     console.log(`Variants/STL:    ${VARIANTS_PER_STL}`);
     console.log(`Concurrency:     ${CONCURRENCY}`);
+    console.log(`Parse workers:   ${PARSE_WORKERS}`);
     console.log(`Output dir:      ${OUTPUT_DIR}`);
     console.log(`Temp dir:        ${tmpDir}`);
     console.log(`Seed:            ${SEED}`);
@@ -225,62 +290,59 @@ async function main() {
     });
     console.log(`Pending tasks:   ${tasks.length}`);
 
-    // === Reconciliation: remove local files already on HF ===
-    console.log('Checking which files are already uploaded to HF...');
-    const reconcileRes = await runPython(pythonBin, [UPLOAD_SCRIPT, '--list-uploaded']);
-    let uploadedSet = new Set();
-    try {
-        const prefix = '___RESULT___:';
-        const lines = reconcileRes.stdout.trim().split('\n').filter(Boolean);
-        const resultLine = lines.find(l => l.startsWith(prefix));
-        if (resultLine) {
-            const parsed = JSON.parse(resultLine.slice(prefix.length));
-            if (Array.isArray(parsed)) {
-                uploadedSet = new Set(parsed);
-            }
-        }
-    } catch (_) { /* ignore parse errors, just don't purge */ }
-    let reconciledCount = 0;
-    if (uploadedSet.size > 0) {
-        for (const entry of augManifest) {
-            if (!entry.gcode) continue;
-            const gcodePath = path.join(OUTPUT_DIR, entry.gcode);
-            if (uploadedSet.has(entry.gcode) && fs.existsSync(gcodePath)) {
-                try { fs.unlinkSync(gcodePath); reconciledCount++; } catch (_) { /* ignore */ }
-            }
-        }
-        // Also sweep any orphan .gcode files matching uploaded names
-        if (fs.existsSync(OUTPUT_DIR)) {
-            for (const f of fs.readdirSync(OUTPUT_DIR)) {
-                if (f.endsWith('.gcode') && uploadedSet.has(f) && fs.existsSync(path.join(OUTPUT_DIR, f))) {
-                    try { fs.unlinkSync(path.join(OUTPUT_DIR, f)); reconciledCount++; } catch (_) { /* ignore */ }
-                }
-            }
-        }
-        console.log(`Reconciled: removed ${reconciledCount} locally cached files already on HF`);
+    const saveManifest = () => fs.writeFileSync(AUG_MANIFEST_PATH, JSON.stringify(augManifest, null, 2));
+    const manifestByGcode = new Map();
+    for (const e of augManifest) {
+        if (e.gcode) manifestByGcode.set(e.gcode, e);
     }
 
-    // Re-scan local files that still need uploading
+    function markEntriesUploaded(filePaths) {
+        let changed = 0;
+        for (const fp of filePaths) {
+            const entry = manifestByGcode.get(path.basename(fp));
+            if (entry && !entry.uploaded) {
+                entry.uploaded = true;
+                changed++;
+            }
+        }
+        if (changed > 0) saveManifest();
+        // Best-effort delete; Python already deleted, this is a safety net.
+        for (const fp of filePaths) {
+            try { fs.unlinkSync(fp); } catch (_) { /* ignore */ }
+        }
+    }
+
+    // === Reconcile OUTPUT_DIR against manifest ===
     let batchEntries = [];
     let batchBytes = 0;
+    let resumeQueued = 0;
+    let resumeDeletedUploaded = 0;
+    let resumeDeletedOrphans = 0;
     if (fs.existsSync(OUTPUT_DIR)) {
         for (const f of fs.readdirSync(OUTPUT_DIR)) {
             if (!f.endsWith('.gcode')) continue;
             const fPath = path.join(OUTPUT_DIR, f);
+            const entry = manifestByGcode.get(f);
+            if (entry && entry.uploaded) {
+                try { fs.unlinkSync(fPath); resumeDeletedUploaded++; } catch (_) { /* ignore */ }
+                continue;
+            }
+            if (!entry) {
+                try { fs.unlinkSync(fPath); resumeDeletedOrphans++; } catch (_) { /* ignore */ }
+                continue;
+            }
             try {
                 const stat = fs.statSync(fPath);
-                // Find the matching augManifest entry to get the label
-                const entry = augManifest.find(e => e.gcode === f);
-                if (entry) {
-                    batchEntries.push({ path: fPath, label: entry.label || 1 });
-                    batchBytes += stat.size;
-                }
+                batchEntries.push({ path: fPath, label: entry.label || 1 });
+                batchBytes += stat.size;
+                resumeQueued++;
             } catch (_) { /* ignore */ }
         }
     }
-    if (batchEntries.length > 0) {
-        console.log(`Resuming with ${batchEntries.length} leftover files (${(batchBytes / 1e9).toFixed(3)} GB) already in OUTPUT_DIR`);
-    }
+    console.log(
+        `Resume scan: queued=${resumeQueued} (${(batchBytes / 1e9).toFixed(2)} GB), ` +
+        `deleted_uploaded=${resumeDeletedUploaded}, deleted_orphans=${resumeDeletedOrphans}`
+    );
 
     let cursor = 0;
     let savesSinceFlush = 0;
@@ -293,8 +355,6 @@ async function main() {
         const out = renderProgress(tasks, perWorker, batchBytes);
         process.stdout.write('\r\x1b[K' + out.replace(/\n/g, '\n\r\x1b[K'));
     }, 2000);
-
-    const saveManifest = () => fs.writeFileSync(AUG_MANIFEST_PATH, JSON.stringify(augManifest, null, 2));
 
     async function worker(workerId) {
         while (true) {
@@ -311,7 +371,7 @@ async function main() {
             const outGcode = path.join(OUTPUT_DIR, `${task.key}.gcode`);
 
             if (DRY_RUN) {
-                augManifest.push({
+                const dryEntry = {
                     key: task.key,
                     source_index: task.i + 1,
                     source_file: task.entry.file,
@@ -321,7 +381,9 @@ async function main() {
                     scale_factor: task.scaleFactor,
                     settings: task.settings,
                     gcode: null,
-                });
+                    uploaded: false,
+                };
+                augManifest.push(dryEntry);
                 perWorker[workerId - 1].success++;
                 continue;
             }
@@ -348,7 +410,7 @@ async function main() {
                     timeoutMs: TIMEOUT_MS,
                 });
 
-                augManifest.push({
+                const newEntry = {
                     key: task.key,
                     source_index: task.i + 1,
                     source_file: task.entry.file,
@@ -358,7 +420,10 @@ async function main() {
                     scale_factor: task.scaleFactor,
                     settings: task.settings,
                     gcode: path.basename(outGcode),
-                });
+                    uploaded: false,
+                };
+                augManifest.push(newEntry);
+                manifestByGcode.set(newEntry.gcode, newEntry);
                 savesSinceFlush++;
 
                 // Track file size and flush upload batch — serialized via batchLock
@@ -373,7 +438,10 @@ async function main() {
                         const toUpload = batchEntries;
                         batchEntries = [];
                         batchBytes = 0;
-                        await uploadAndEvict(toUpload, pythonBin);
+                        await uploadAndEvict(toUpload, pythonBin, {
+                            onShardUploaded: (paths) => markEntriesUploaded(paths),
+                            parseWorkers: PARSE_WORKERS,
+                        });
                     }
                 });
 
@@ -403,7 +471,10 @@ async function main() {
     // Flush any remaining files in the batch
     if (batchEntries.length > 0) {
         console.log(`Flushing final upload batch: ${(batchBytes / 1e9).toFixed(3)} GB...`);
-        await uploadAndEvict(batchEntries, pythonBin);
+        await uploadAndEvict(batchEntries, pythonBin, {
+            onShardUploaded: (paths) => markEntriesUploaded(paths),
+            parseWorkers: PARSE_WORKERS,
+        });
         batchEntries = [];
         batchBytes = 0;
     }
