@@ -17,10 +17,11 @@ G-code's G90/G91 mode.  Extrusion values are similarly normalised to absolute.
 """
 from __future__ import annotations
 
+import json
 import math
 import re
 import sys
-from typing import List, Optional
+from typing import Iterable, Iterator, List, Optional
 
 
 class GCodeParser:
@@ -123,13 +124,16 @@ class GCodeParser:
 
 def parse_gcode(text: str) -> List[dict]:
     """Parse a full G-code string into a list of toolpath dicts."""
+    return list(iter_parse_gcode_lines(text.splitlines()))
+
+
+def iter_parse_gcode_lines(lines: Iterable[str]) -> Iterator[dict]:
+    """Stream parsed toolpath rows from G-code lines."""
     parser = GCodeParser()
-    toolpaths: List[dict] = []
-    for line in text.splitlines():
+    for line in lines:
         result = parser.parse_line(line)
         if result is not None:
-            toolpaths.append(result)
-    return toolpaths
+            yield result
 
 
 def toolpaths_to_rows(toolpaths: List[dict]) -> List[dict]:
@@ -161,14 +165,27 @@ def toolpaths_to_rows(toolpaths: List[dict]) -> List[dict]:
 def parse_gcode_file(path: str) -> List[dict]:
     """Read a .gcode file and return parsed toolpath rows."""
     with open(path, "r", errors="ignore") as f:
-        text = f.read()
-    toolpaths = parse_gcode(text)
-    return toolpaths
+        return list(iter_parse_gcode_lines(f))
+
+
+def write_parsed_gcode_json(input_path: str, output_path: str) -> int:
+    """Stream-parse a .gcode file and write a JSON array without buffering rows."""
+    count = 0
+    with open(input_path, "r", errors="ignore") as src, open(output_path, "w") as dst:
+        dst.write("[")
+        first = True
+        for row in iter_parse_gcode_lines(src):
+            if first:
+                first = False
+            else:
+                dst.write(",")
+            json.dump(row, dst, separators=(",", ":"))
+            count += 1
+        dst.write("]")
+    return count
 
 
 if __name__ == "__main__":
-    import json
-
     path = sys.argv[1] if len(sys.argv) > 1 else None
     if not path:
         print("Usage: parse_gcode.py <file.gcode>", file=sys.stderr)

@@ -33,7 +33,7 @@ const SPLICER_DIR = path.resolve(__dirname, '..', '..', 'slicer');
 const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
 const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
-const BATCH_SIZE_BYTES = 20 * 1024 * 1024 * 1024; // 20 GB
+const DEFAULT_BATCH_SIZE_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB
 const TMP_DIR = 'D:\\markeyTemp';
 
 const SHARD_PREFIX = '___SHARD___:';
@@ -74,13 +74,29 @@ function choice(rand, arr) { return arr[Math.floor(rand() * arr.length)]; }
 
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
+function parseByteSize(value, fallback) {
+    if (value === undefined || value === null || value === '') return fallback;
+    const match = String(value).trim().match(/^(\d+(?:\.\d+)?)([kmgt]?b?)?$/i);
+    if (!match) return fallback;
+    const n = Number(match[1]);
+    if (!Number.isFinite(n) || n <= 0) return fallback;
+    const unit = (match[2] || '').toLowerCase().replace(/b$/, '');
+    const multipliers = { '': 1, k: 1024, m: 1024 ** 2, g: 1024 ** 3, t: 1024 ** 4 };
+    return Math.floor(n * (multipliers[unit] || 1));
+}
+
+function parsePositiveInt(value, fallback) {
+    const n = parseInt(value, 10);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
 function formatBar(fraction, width) {
     const filled = Math.round(clamp(fraction, 0, 1) * width);
     const empty = width - filled;
     return '[' + '='.repeat(filled) + '>'.repeat(filled > 0 && filled < width ? 1 : 0) + ' '.repeat(Math.max(0, empty - (filled > 0 && filled < width ? 1 : 0))) + ']';
 }
 
-function renderProgress(tasks, perWorker, batchBytes) {
+function renderProgress(tasks, perWorker, batchBytes, batchSizeBytes) {
     const totalSuccess = perWorker.reduce((s, w) => s + w.success, 0);
     const totalFail = perWorker.reduce((s, w) => s + w.fail, 0);
     const done = totalSuccess + totalFail;
@@ -90,7 +106,7 @@ function renderProgress(tasks, perWorker, batchBytes) {
     const bar = formatBar(fraction, 45);
     const parts = perWorker.map((w, i) => `w${i + 1}: ${w.success} ok, ${w.fail} fail`);
     const lines = [`${bar} ${pct}%  ${done}/${total}  (${totalSuccess} ok, ${totalFail} fail)`, `  ${parts.join('  •  ')}`];
-    if (batchBytes > 0) lines.push(`  Upload queue: ${(batchBytes / 1e9).toFixed(1)} GB / ${(BATCH_SIZE_BYTES / 1e9).toFixed(0)} GB`);
+    if (batchBytes > 0) lines.push(`  Upload queue: ${(batchBytes / 1e9).toFixed(1)} GB / ${(batchSizeBytes / 1e9).toFixed(1)} GB`);
     return lines.join('\n');
 }
 
@@ -209,6 +225,7 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
     if (entries.length === 0) return;
     const tmpList = path.join(fs.mkdtempSync(path.join(TMP_DIR, 'hf-batch-')), 'batch.json');
     fs.writeFileSync(tmpList, JSON.stringify(entries));
+    let shardHandlerError = null;
     try {
         const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList], {
             streamStderr: true,
@@ -218,11 +235,16 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
                 try {
                     const payload = JSON.parse(line.slice(SHARD_PREFIX.length));
                     if (Array.isArray(payload.uploaded) && payload.uploaded.length && onShardUploaded) {
-                        onShardUploaded(payload.uploaded);
+                        try {
+                            onShardUploaded(payload.uploaded);
+                        } catch (err) {
+                            shardHandlerError = err;
+                        }
                     }
                 } catch (_) { /* ignore parse errors */ }
             },
         });
+        if (shardHandlerError) throw shardHandlerError;
         const lines = res.stdout.trim().split('\n').filter(Boolean);
         const resultLine = lines.find(l => l.startsWith(RESULT_PREFIX));
         if (!resultLine) {
@@ -230,6 +252,9 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
             return;
         }
         const result = JSON.parse(resultLine.slice(RESULT_PREFIX.length));
+        if (Array.isArray(result.uploaded) && result.uploaded.length && onShardUploaded) {
+            onShardUploaded(result.uploaded);
+        }
         if (result.failed && result.failed.length > 0) {
             console.warn(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
         }
@@ -248,8 +273,12 @@ async function main() {
     const SEED = parseInt(args.seed || '42', 10);
     const TIMEOUT_MS = parseInt(args.timeout || (10 * 60 * 1000).toString(), 10);
     const LABEL = parseInt(args.label || '1', 10);
-    const CONCURRENCY = Math.max(1, parseInt(args.concurrency || '1', 10));
-    const PARSE_WORKERS = Math.max(1, parseInt(args['parse-workers'] || String(Math.max(2, Math.min(4, CONCURRENCY))), 10));
+    const CONCURRENCY = parsePositiveInt(args.concurrency || '1', 1);
+    const PARSE_WORKERS = parsePositiveInt(args['parse-workers'] || process.env.HF_PARSE_WORKERS || '1', 1);
+    const BATCH_SIZE_BYTES = parseByteSize(
+        args['batch-size'] || process.env.MARKEY_BATCH_SIZE_BYTES,
+        DEFAULT_BATCH_SIZE_BYTES
+    );
     const DRY_RUN = args['dry-run'] === 'true';
 
     ensureDir(OUTPUT_DIR);
@@ -268,7 +297,19 @@ async function main() {
             augManifest = [];
         }
     }
-    const doneKeys = new Set(augManifest.map((e) => e.key));
+    const manifestByKey = new Map();
+    const manifestByGcode = new Map();
+    const doneKeys = new Set();
+    for (const e of augManifest) {
+        if (!e.key) continue;
+        if (e.key) manifestByKey.set(e.key, e);
+        if (e.gcode) manifestByGcode.set(e.gcode, e);
+        if (e.uploaded) {
+            doneKeys.add(e.key);
+        } else if (e.gcode && fs.existsSync(path.join(OUTPUT_DIR, e.gcode))) {
+            doneKeys.add(e.key);
+        }
+    }
 
     const tmpDir = fs.mkdtempSync(path.join(TMP_DIR, 'stl-aug-'));
     const pythonBin = pickPythonBin();
@@ -278,6 +319,7 @@ async function main() {
     console.log(`Variants/STL:    ${VARIANTS_PER_STL}`);
     console.log(`Concurrency:     ${CONCURRENCY}`);
     console.log(`Parse workers:   ${PARSE_WORKERS}`);
+    console.log(`Upload batch:    ${(BATCH_SIZE_BYTES / 1e9).toFixed(2)} GB`);
     console.log(`Output dir:      ${OUTPUT_DIR}`);
     console.log(`Temp dir:        ${tmpDir}`);
     console.log(`Seed:            ${SEED}`);
@@ -291,23 +333,22 @@ async function main() {
     console.log(`Pending tasks:   ${tasks.length}`);
 
     const saveManifest = () => fs.writeFileSync(AUG_MANIFEST_PATH, JSON.stringify(augManifest, null, 2));
-    const manifestByGcode = new Map();
-    for (const e of augManifest) {
-        if (e.gcode) manifestByGcode.set(e.gcode, e);
-    }
 
     function markEntriesUploaded(filePaths) {
         let changed = 0;
+        const toDelete = [];
         for (const fp of filePaths) {
             const entry = manifestByGcode.get(path.basename(fp));
-            if (entry && !entry.uploaded) {
-                entry.uploaded = true;
-                changed++;
+            if (entry) {
+                if (!entry.uploaded) {
+                    entry.uploaded = true;
+                    changed++;
+                }
+                toDelete.push(fp);
             }
         }
         if (changed > 0) saveManifest();
-        // Best-effort delete; Python already deleted, this is a safety net.
-        for (const fp of filePaths) {
+        for (const fp of toDelete) {
             try { fs.unlinkSync(fp); } catch (_) { /* ignore */ }
         }
     }
@@ -352,7 +393,7 @@ async function main() {
 
     // Render progress bar every 2s on a single line (carriage return)
     const progressTimer = setInterval(() => {
-        const out = renderProgress(tasks, perWorker, batchBytes);
+        const out = renderProgress(tasks, perWorker, batchBytes, BATCH_SIZE_BYTES);
         process.stdout.write('\r\x1b[K' + out.replace(/\n/g, '\n\r\x1b[K'));
     }, 2000);
 
@@ -383,7 +424,13 @@ async function main() {
                     gcode: null,
                     uploaded: false,
                 };
-                augManifest.push(dryEntry);
+                const existing = manifestByKey.get(task.key);
+                if (existing) {
+                    Object.assign(existing, dryEntry);
+                } else {
+                    augManifest.push(dryEntry);
+                    manifestByKey.set(dryEntry.key, dryEntry);
+                }
                 perWorker[workerId - 1].success++;
                 continue;
             }
@@ -422,8 +469,18 @@ async function main() {
                     gcode: path.basename(outGcode),
                     uploaded: false,
                 };
-                augManifest.push(newEntry);
-                manifestByGcode.set(newEntry.gcode, newEntry);
+                const existing = manifestByKey.get(task.key);
+                if (existing) {
+                    if (existing.gcode && existing.gcode !== newEntry.gcode) {
+                        manifestByGcode.delete(existing.gcode);
+                    }
+                    Object.assign(existing, newEntry);
+                    manifestByGcode.set(existing.gcode, existing);
+                } else {
+                    augManifest.push(newEntry);
+                    manifestByKey.set(newEntry.key, newEntry);
+                    manifestByGcode.set(newEntry.gcode, newEntry);
+                }
                 savesSinceFlush++;
 
                 // Track file size and flush upload batch — serialized via batchLock

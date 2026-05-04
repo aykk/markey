@@ -9,8 +9,11 @@ machine limits) and extracts absolute-coordinate toolpaths from G0/G1/G2/G3.
 """
 from __future__ import annotations
 
+import atexit
 import json
+import importlib.util
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -18,12 +21,18 @@ import time
 TMP_DIR = "D:\\markeyTemp"
 PARSED_TMP_DIR = "D:\\markeyTemp\\markeyTemp1"
 RESULT_PREFIX = "___RESULT___:"
+SHARD_PREFIX = "___SHARD___:"
 
 from huggingface_hub import HfApi
 
 # Phase 2 parser
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "phase2"))
-from parse_gcode import parse_gcode_file
+PHASE2_PARSE_PATH = os.path.join(os.path.dirname(__file__), "..", "phase2", "parse_gcode.py")
+_parse_spec = importlib.util.spec_from_file_location("phase2_parse_gcode", PHASE2_PARSE_PATH)
+if _parse_spec is None or _parse_spec.loader is None:
+    raise ImportError(f"Unable to load parser from {PHASE2_PARSE_PATH}")
+_parse_module = importlib.util.module_from_spec(_parse_spec)
+_parse_spec.loader.exec_module(_parse_module)
+write_parsed_gcode_json = _parse_module.write_parsed_gcode_json
 
 REPO_ID = "jungter/augmented-g-code"
 
@@ -31,19 +40,47 @@ REPO_ID = "jungter/augmented-g-code"
 def _parse_one(file_path: str) -> dict:
     """Parse a single gcode file. Runs in a worker process.
     Returns only lightweight metadata; toolpath JSON is written to a temp file."""
-    toolpaths = parse_gcode_file(file_path)
     filename = os.path.basename(file_path)
-    tmp = tempfile.NamedTemporaryFile(
-        dir=PARSED_TMP_DIR, suffix=".parsed", delete=False, mode="w"
-    )
-    json.dump(toolpaths, tmp)
-    tmp.close()
+    os.makedirs(PARSED_TMP_DIR, exist_ok=True)
+    fd, parsed_path = tempfile.mkstemp(dir=PARSED_TMP_DIR, suffix=".parsed")
+    os.close(fd)
+    try:
+        num_moves = write_parsed_gcode_json(file_path, parsed_path)
+    except Exception:
+        try:
+            os.unlink(parsed_path)
+        except OSError:
+            pass
+        raise
     return {
         "file_path": file_path,
         "filename": filename,
-        "parsed_path": tmp.name,
-        "num_moves": len(toolpaths),
+        "parsed_path": parsed_path,
+        "num_moves": num_moves,
     }
+
+
+def _read_positive_int_env(name: str, default: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except ValueError:
+        return default
+    return max(1, value)
+
+
+def _cleanup_stale_parsed_files() -> int:
+    if not os.path.isdir(PARSED_TMP_DIR):
+        return 0
+    removed = 0
+    for name in os.listdir(PARSED_TMP_DIR):
+        if not name.endswith(".parsed"):
+            continue
+        try:
+            os.unlink(os.path.join(PARSED_TMP_DIR, name))
+            removed += 1
+        except OSError:
+            pass
+    return removed
 
 
 def main() -> int:
@@ -58,7 +95,6 @@ def main() -> int:
         print(f"{RESULT_PREFIX}{json.dumps({'uploaded': [], 'failed': []})}")
         return 0
 
-    import shutil
     from concurrent.futures import ProcessPoolExecutor
 
     import huggingface_hub
@@ -68,13 +104,19 @@ def main() -> int:
     huggingface_hub.logging.set_verbosity_error()
     api = HfApi()
 
-    # Flush a parquet shard every ~10GB of raw gcode (so a 20GB JS batch
-    # produces ~2 commits instead of one giant one).
-    UPLOAD_THRESHOLD = 10 * 1024 * 1024 * 1024  # 10 GB
+    # Flush shards aggressively; parsed JSON can be much larger than raw G-code.
+    UPLOAD_THRESHOLD = _read_positive_int_env(
+        "HF_UPLOAD_THRESHOLD_BYTES", 5 * 1024 * 1024 * 1024
+    )
+    CHUNK_BYTES = _read_positive_int_env("HF_PARQUET_CHUNK_BYTES", 1 * 1024 * 1024 * 1024)
 
     os.makedirs(TMP_DIR, exist_ok=True)
     os.makedirs(PARSED_TMP_DIR, exist_ok=True)
+    stale_parsed = _cleanup_stale_parsed_files()
+    if stale_parsed:
+        print(f"  Removed {stale_parsed} stale parsed temp files.", file=sys.stderr)
     staging_dir = tempfile.mkdtemp(dir=TMP_DIR, prefix="hf-stage-")
+    atexit.register(lambda: shutil.rmtree(staging_dir, ignore_errors=True))
     data_staging = os.path.join(staging_dir, "data")
     os.makedirs(data_staging, exist_ok=True)
 
@@ -95,13 +137,10 @@ def main() -> int:
             continue
         valid_entries.append(entry)
 
-    # Worker count is bounded; default to 4. Override via HF_PARSE_WORKERS env
+    # Worker count is bounded; default to 1. Override via HF_PARSE_WORKERS env
     # var (set by the JS caller based on --concurrency) so we don't compete
     # with CuraEngine instances for RAM.
-    try:
-        num_workers = max(1, int(os.environ.get("HF_PARSE_WORKERS", "4")))
-    except ValueError:
-        num_workers = 4
+    num_workers = _read_positive_int_env("HF_PARSE_WORKERS", 1)
     print(f"  Parsing {len(valid_entries)} files with {num_workers} workers...", file=sys.stderr)
 
     uploaded: list[str] = []
@@ -109,8 +148,18 @@ def main() -> int:
 
     batch_parsed: list[str] = []   # .parsed temp file paths
     batch_labels: list[int] = []
-    batch_originals: list[str] = []  # raw gcode source paths to delete after success
+    batch_originals: list[str] = []  # raw gcode source paths to mark/delete in JS
     batch_bytes = 0                # tracked raw gcode bytes
+
+    def _cleanup_runtime_files() -> None:
+        for pf in list(batch_parsed):
+            try:
+                os.unlink(pf)
+            except OSError:
+                pass
+        shutil.rmtree(staging_dir, ignore_errors=True)
+
+    atexit.register(_cleanup_runtime_files)
 
     def _upload_with_retry(folder: str, message: str, attempts: int = 3) -> None:
         last_err: Exception | None = None
@@ -142,40 +191,40 @@ def main() -> int:
         parquet_path = os.path.join(data_staging, f"batch_{shard_num:04d}.parquet")
         writer = pq.ParquetWriter(parquet_path, schema)
 
-        # Stream rows in small chunks (~64MB JSON) to keep memory bounded.
+        # Stream rows in small chunks to keep memory bounded.
         # Smaller chunks cost a bit of parquet write throughput but cap peak
         # RSS during flush — important when CuraEngine slicers are still
         # holding GBs in the parent JS process.
-        CHUNK_BYTES = 64 * 1024 * 1024
         chunk_jsons: list[str] = []
         chunk_labels: list[int] = []
         chunk_bytes = 0
 
-        for j, pf in enumerate(batch_parsed):
-            try:
-                with open(pf, "r") as f:
-                    tj = f.read()
-            except OSError as e:
-                print(f"  WARN: parsed temp missing: {pf}: {e}", file=sys.stderr)
-                continue
-            try:
-                os.unlink(pf)
-            except OSError:
-                pass
-            chunk_jsons.append(tj)
-            chunk_labels.append(batch_labels[j])
-            chunk_bytes += len(tj)
-            if chunk_bytes >= CHUNK_BYTES or j == len(batch_parsed) - 1:
-                table = pa.table(
-                    {"toolpath_json": chunk_jsons, "label": chunk_labels},
-                    schema=schema,
-                )
-                writer.write_table(table)
-                chunk_jsons.clear()
-                chunk_labels.clear()
-                chunk_bytes = 0
-
-        writer.close()
+        try:
+            for j, pf in enumerate(batch_parsed):
+                try:
+                    with open(pf, "r") as f:
+                        tj = f.read()
+                except OSError as e:
+                    print(f"  WARN: parsed temp missing: {pf}: {e}", file=sys.stderr)
+                    continue
+                try:
+                    os.unlink(pf)
+                except OSError:
+                    pass
+                chunk_jsons.append(tj)
+                chunk_labels.append(batch_labels[j])
+                chunk_bytes += len(tj)
+                if chunk_bytes >= CHUNK_BYTES or j == len(batch_parsed) - 1:
+                    table = pa.table(
+                        {"toolpath_json": chunk_jsons, "label": chunk_labels},
+                        schema=schema,
+                    )
+                    writer.write_table(table)
+                    chunk_jsons.clear()
+                    chunk_labels.clear()
+                    chunk_bytes = 0
+        finally:
+            writer.close()
 
         try:
             psize = os.path.getsize(parquet_path)
@@ -196,24 +245,11 @@ def main() -> int:
         except OSError:
             pass
 
-        # Delete the source .gcode files NOW, while we know this shard
-        # committed successfully. If Python crashes during a later flush, these
-        # files won't be re-queued and re-uploaded as duplicates on the next
-        # run. JS still calls unlinkSync on them as a safety net.
-        deleted = 0
-        for fp in batch_originals:
-            try:
-                os.unlink(fp)
-                deleted += 1
-            except OSError:
-                pass
-        print(f"  Deleted {deleted}/{len(batch_originals)} local source files for shard {shard_num}", file=sys.stderr)
-
         # Emit a per-shard event on stdout so the JS caller can mark these
         # entries `uploaded: true` in augmented-manifest.json immediately,
         # without waiting for this Python process to exit.
         shard_payload = {"shard": shard_num, "uploaded": list(batch_originals)}
-        print(f"___SHARD___:{json.dumps(shard_payload)}", flush=True)
+        print(f"{SHARD_PREFIX}{json.dumps(shard_payload)}", flush=True)
 
         uploaded.extend(batch_originals)
 
