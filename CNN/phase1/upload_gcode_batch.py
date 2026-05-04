@@ -145,6 +145,7 @@ def main() -> int:
 
     uploaded: list[str] = []
     failed: list[dict] = list(skipped)
+    parsed_entries: list[dict] = []
 
     batch_parsed: list[str] = []   # .parsed temp file paths
     batch_labels: list[int] = []
@@ -152,6 +153,11 @@ def main() -> int:
     batch_bytes = 0                # tracked raw gcode bytes
 
     def _cleanup_runtime_files() -> None:
+        for item in list(parsed_entries):
+            try:
+                os.unlink(item["parsed_path"])
+            except OSError:
+                pass
         for pf in list(batch_parsed):
             try:
                 os.unlink(pf)
@@ -279,6 +285,7 @@ def main() -> int:
         total = len(valid_entries)
         entry_idx = 0
         done_count = 0
+        parsed_bytes = 0
 
         pending: dict = {}
         while entry_idx < total and len(pending) < SUBMIT_BATCH:
@@ -305,16 +312,18 @@ def main() -> int:
                 done_count += 1
                 try:
                     result = future.result()
-                    batch_parsed.append(result["parsed_path"])
-                    batch_labels.append(entry["label"])
-
                     file_path = result["file_path"]
-                    batch_originals.append(file_path)
-
                     try:
-                        batch_bytes += os.path.getsize(file_path)
+                        raw_bytes = os.path.getsize(file_path)
                     except OSError:
-                        pass
+                        raw_bytes = 0
+                    parsed_entries.append({
+                        "parsed_path": result["parsed_path"],
+                        "label": entry["label"],
+                        "file_path": file_path,
+                        "raw_bytes": raw_bytes,
+                    })
+                    parsed_bytes += raw_bytes
                 except Exception as e:
                     failed.append({"file": entry["path"], "error": str(e)})
 
@@ -324,10 +333,17 @@ def main() -> int:
                     entry_idx += 1
 
             sys.stderr.write(
-                f"\r  Parsing: {done_count}/{total} ({done_count * 100 // total}%) batch: {batch_bytes / 1e9:.1f}/{UPLOAD_THRESHOLD / 1e9:.0f} GB"
+                f"\r  Parsing: {done_count}/{total} ({done_count * 100 // total}%) parsed: {parsed_bytes / 1e9:.1f} GB"
             )
             sys.stderr.flush()
 
+    if parsed_entries and not shutting_down:
+        print(f"\n  Uploading {len(parsed_entries)} parsed files sequentially...", file=sys.stderr)
+        for item in parsed_entries:
+            batch_parsed.append(item["parsed_path"])
+            batch_labels.append(item["label"])
+            batch_originals.append(item["file_path"])
+            batch_bytes += item["raw_bytes"]
             if batch_bytes >= UPLOAD_THRESHOLD:
                 flush_batch()
 

@@ -33,7 +33,7 @@ const SPLICER_DIR = path.resolve(__dirname, '..', '..', 'slicer');
 const DEF_FILE = path.join(SPLICER_DIR, 'fdmprinter.def.json');
 const AUGMENT_SCRIPT = path.join(__dirname, 'augment_stl.py');
 const UPLOAD_SCRIPT = path.join(__dirname, 'upload_gcode_batch.py');
-const DEFAULT_BATCH_SIZE_BYTES = 1 * 1024 * 1024 * 1024; // 1 GB
+const DEFAULT_BATCH_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
 const TMP_DIR = 'D:\\markeyTemp';
 
 const SHARD_PREFIX = '___SHARD___:';
@@ -388,8 +388,50 @@ async function main() {
     let cursor = 0;
     let savesSinceFlush = 0;
     let batchLock = Promise.resolve();
+    let activeSlicers = 0;
+    let slicerDrainResolvers = [];
     const perWorker = [];
     for (let w = 0; w < CONCURRENCY; w++) perWorker.push({ success: 0, fail: 0 });
+
+    function noteSlicerStarted() {
+        activeSlicers++;
+    }
+
+    function noteSlicerFinished() {
+        activeSlicers--;
+        if (activeSlicers === 0) {
+            const resolvers = slicerDrainResolvers;
+            slicerDrainResolvers = [];
+            for (const resolve of resolvers) resolve();
+        }
+    }
+
+    function waitForSlicersToDrain() {
+        if (activeSlicers === 0) return Promise.resolve();
+        return new Promise((resolve) => slicerDrainResolvers.push(resolve));
+    }
+
+    async function uploadCurrentBatchIfNeeded(force = false) {
+        if (!force && batchBytes < BATCH_SIZE_BYTES) return;
+        if (batchEntries.length === 0) return;
+
+        const toUpload = batchEntries;
+        const uploadBytes = batchBytes;
+        batchEntries = [];
+        batchBytes = 0;
+
+        console.log(`\nPausing Cura slicing; upload queue reached ${(uploadBytes / 1e9).toFixed(3)} GB.`);
+        await waitForSlicersToDrain();
+        await uploadAndEvict(toUpload, pythonBin, {
+            onShardUploaded: (paths) => markEntriesUploaded(paths),
+            parseWorkers: PARSE_WORKERS,
+        });
+    }
+
+    function scheduleUploadIfNeeded(force = false) {
+        batchLock = batchLock.then(() => uploadCurrentBatchIfNeeded(force));
+        return batchLock;
+    }
 
     // Render progress bar every 2s on a single line (carriage return)
     const progressTimer = setInterval(() => {
@@ -399,6 +441,7 @@ async function main() {
 
     async function worker(workerId) {
         while (true) {
+            await batchLock;
             const idx = cursor++;
             if (idx >= tasks.length) return;
             const task = tasks[idx];
@@ -448,14 +491,19 @@ async function main() {
 
             // 2) Slice
             try {
-                await sliceStlWithCuraEngine({
-                    stlPath: tmpStl,
-                    outputGcodePath: outGcode,
-                    definitionPath: DEF_FILE,
-                    settings: task.settings,
-                    cwd: SPLICER_DIR,
-                    timeoutMs: TIMEOUT_MS,
-                });
+                noteSlicerStarted();
+                try {
+                    await sliceStlWithCuraEngine({
+                        stlPath: tmpStl,
+                        outputGcodePath: outGcode,
+                        definitionPath: DEF_FILE,
+                        settings: task.settings,
+                        cwd: SPLICER_DIR,
+                        timeoutMs: TIMEOUT_MS,
+                    });
+                } finally {
+                    noteSlicerFinished();
+                }
 
                 const newEntry = {
                     key: task.key,
@@ -491,15 +539,7 @@ async function main() {
                         batchBytes += stat.size;
                     } catch (_) { /* file may have been cleaned up */ }
 
-                    if (batchBytes >= BATCH_SIZE_BYTES) {
-                        const toUpload = batchEntries;
-                        batchEntries = [];
-                        batchBytes = 0;
-                        await uploadAndEvict(toUpload, pythonBin, {
-                            onShardUploaded: (paths) => markEntriesUploaded(paths),
-                            parseWorkers: PARSE_WORKERS,
-                        });
-                    }
+                    await uploadCurrentBatchIfNeeded(false);
                 });
 
                 await batchLock;
@@ -519,6 +559,8 @@ async function main() {
         }
     }
 
+    await scheduleUploadIfNeeded(false);
+
     const workers = [];
     for (let w = 0; w < CONCURRENCY; w++) workers.push(worker(w + 1));
     await Promise.all(workers);
@@ -528,12 +570,7 @@ async function main() {
     // Flush any remaining files in the batch
     if (batchEntries.length > 0) {
         console.log(`Flushing final upload batch: ${(batchBytes / 1e9).toFixed(3)} GB...`);
-        await uploadAndEvict(batchEntries, pythonBin, {
-            onShardUploaded: (paths) => markEntriesUploaded(paths),
-            parseWorkers: PARSE_WORKERS,
-        });
-        batchEntries = [];
-        batchBytes = 0;
+        await scheduleUploadIfNeeded(true);
     }
 
     saveManifest();
