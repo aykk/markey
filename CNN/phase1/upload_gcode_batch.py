@@ -23,16 +23,36 @@ PARSED_TMP_DIR = "D:\\markeyTemp\\markeyTemp1"
 RESULT_PREFIX = "___RESULT___:"
 SHARD_PREFIX = "___SHARD___:"
 
+if os.environ.get("HF_HUB_ENABLE_HF_TRANSFER") == "1":
+    try:
+        import hf_transfer  # noqa: F401
+    except ImportError:
+        print(
+            "  WARN: HF_HUB_ENABLE_HF_TRANSFER=1 but hf_transfer is not installed; "
+            "falling back to default uploader. Run `pip install hf_transfer` for "
+            "much faster uploads.",
+            file=sys.stderr,
+        )
+        os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"
+
 from huggingface_hub import HfApi
 
-# Phase 2 parser
-PHASE2_PARSE_PATH = os.path.join(os.path.dirname(__file__), "..", "phase2", "parse_gcode.py")
-_parse_spec = importlib.util.spec_from_file_location("phase2_parse_gcode", PHASE2_PARSE_PATH)
-if _parse_spec is None or _parse_spec.loader is None:
-    raise ImportError(f"Unable to load parser from {PHASE2_PARSE_PATH}")
-_parse_module = importlib.util.module_from_spec(_parse_spec)
-_parse_spec.loader.exec_module(_parse_module)
-write_parsed_gcode_json = _parse_module.write_parsed_gcode_json
+# Phase 2 parser. Prefer the Rust extension (markey_gcode_parser) for ~20-50x
+# parsing throughput; fall back to the pure-Python implementation if the
+# extension is not installed.
+try:
+    from markey_gcode_parser import write_parsed_gcode_json  # type: ignore
+    _PARSER_BACKEND = "rust"
+except ImportError:
+    PHASE2_PARSE_PATH = os.path.join(os.path.dirname(__file__), "..", "phase2", "parse_gcode.py")
+    _parse_spec = importlib.util.spec_from_file_location("phase2_parse_gcode", PHASE2_PARSE_PATH)
+    if _parse_spec is None or _parse_spec.loader is None:
+        raise ImportError(f"Unable to load parser from {PHASE2_PARSE_PATH}")
+    _parse_module = importlib.util.module_from_spec(_parse_spec)
+    _parse_spec.loader.exec_module(_parse_module)
+    write_parsed_gcode_json = _parse_module.write_parsed_gcode_json
+    _PARSER_BACKEND = "python"
+print(f"  Parser backend: {_PARSER_BACKEND}", file=sys.stderr)
 
 REPO_ID = "jungter/augmented-g-code"
 

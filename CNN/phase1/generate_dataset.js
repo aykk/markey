@@ -227,9 +227,11 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
     fs.writeFileSync(tmpList, JSON.stringify(entries));
     let shardHandlerError = null;
     try {
+        const uploadEnv = { HF_HUB_ENABLE_HF_TRANSFER: '1' };
+        if (parseWorkers) uploadEnv.HF_PARSE_WORKERS = String(parseWorkers);
         const res = await runPython(pythonBin, [UPLOAD_SCRIPT, tmpList], {
             streamStderr: true,
-            env: parseWorkers ? { HF_PARSE_WORKERS: String(parseWorkers) } : null,
+            env: uploadEnv,
             onStdoutLine: (line) => {
                 if (!line.startsWith(SHARD_PREFIX)) return;
                 try {
