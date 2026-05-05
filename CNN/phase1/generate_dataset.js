@@ -39,6 +39,27 @@ const TMP_DIR = 'D:\\markeyTemp';
 const SHARD_PREFIX = '___SHARD___:';
 const RESULT_PREFIX = '___RESULT___:';
 
+// Shared in-place progress state. `lines` is how many rows below the cursor
+// the progress block last occupied; `active` toggles whether log calls should
+// route through `printAboveProgress` to avoid being overwritten by the bar.
+const progressState = { lines: 0, active: false };
+
+function printAboveProgress(msg) {
+    const text = String(msg).replace(/\n+$/, '');
+    if (!progressState.active) {
+        process.stdout.write(text + '\n');
+        return;
+    }
+    const oldLines = progressState.lines;
+    let buf = '';
+    if (oldLines > 0) buf += `\x1b[${oldLines}A`;
+    buf += '\r\x1b[2K' + text + '\n';
+    for (let i = 0; i < oldLines; i++) buf += '\r\x1b[2K\n';
+    if (oldLines > 0) buf += `\x1b[${oldLines}A`;
+    process.stdout.write(buf);
+    progressState.lines = 0;
+}
+
 function parseArgs(argv) {
     const out = {};
     for (let i = 0; i < argv.length; i++) {
@@ -250,7 +271,7 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
         const lines = res.stdout.trim().split('\n').filter(Boolean);
         const resultLine = lines.find(l => l.startsWith(RESULT_PREFIX));
         if (!resultLine) {
-            console.error(`[UPLOAD ERROR] Python exited (status=${res.status}) with no result line.`);
+            printAboveProgress(`[UPLOAD ERROR] Python exited (status=${res.status}) with no result line.`);
             return;
         }
         const result = JSON.parse(resultLine.slice(RESULT_PREFIX.length));
@@ -258,10 +279,10 @@ async function uploadAndEvict(entries, pythonBin, { onShardUploaded, parseWorker
             onShardUploaded(result.uploaded);
         }
         if (result.failed && result.failed.length > 0) {
-            console.warn(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
+            printAboveProgress(`[UPLOAD WARN] ${result.failed.length} files failed to upload`);
         }
     } catch (err) {
-        console.error(`[UPLOAD ERROR] ${err.message}`);
+        printAboveProgress(`[UPLOAD ERROR] ${err.message}`);
     } finally {
         try { fs.rmSync(path.dirname(tmpList), { recursive: true, force: true }); } catch (_) { /* ignore */ }
     }
@@ -422,7 +443,7 @@ async function main() {
         batchEntries = [];
         batchBytes = 0;
 
-        console.log(`\nPausing Cura slicing; upload queue reached ${(uploadBytes / 1e9).toFixed(3)} GB.`);
+        printAboveProgress(`Pausing Cura slicing; upload queue reached ${(uploadBytes / 1e9).toFixed(3)} GB.`);
         await waitForSlicersToDrain();
         await uploadAndEvict(toUpload, pythonBin, {
             onShardUploaded: (paths) => markEntriesUploaded(paths),
@@ -435,11 +456,29 @@ async function main() {
         return batchLock;
     }
 
-    // Render progress bar every 2s on a single line (carriage return)
-    const progressTimer = setInterval(() => {
-        const out = renderProgress(tasks, perWorker, batchBytes, BATCH_SIZE_BYTES);
-        process.stdout.write('\r\x1b[K' + out.replace(/\n/g, '\n\r\x1b[K'));
-    }, 2000);
+    // Render progress bar in place every 2s. We track how many lines were
+    // drawn last tick (in the shared progressState) so we can move the cursor
+    // back up over them and overwrite, instead of appending a fresh block.
+    const drawProgress = () => {
+        const lines = renderProgress(tasks, perWorker, batchBytes, BATCH_SIZE_BYTES).split('\n');
+        let buf = '';
+        if (progressState.lines > 0) buf += `\x1b[${progressState.lines}A`;
+        for (let i = 0; i < lines.length; i++) {
+            buf += '\r\x1b[2K' + lines[i];
+            if (i < lines.length - 1) buf += '\n';
+        }
+        const oldHeight = progressState.lines + 1;
+        const newHeight = lines.length;
+        if (newHeight < oldHeight) {
+            const diff = oldHeight - newHeight;
+            for (let i = 0; i < diff; i++) buf += '\n\r\x1b[2K';
+            buf += `\x1b[${diff}A`;
+        }
+        process.stdout.write(buf);
+        progressState.lines = lines.length - 1;
+    };
+    progressState.active = true;
+    const progressTimer = setInterval(drawProgress, 2000);
 
     async function worker(workerId) {
         while (true) {
@@ -486,7 +525,7 @@ async function main() {
                 '--axis', task.scaleAxis, '--scale', String(task.scaleFactor),
             ]);
             if (augRes.status !== 0) {
-                console.error(`[AUG FAIL w${workerId}] ${task.key}: ${(augRes.stderr || augRes.stdout || '').trim()}`);
+                printAboveProgress(`[AUG FAIL w${workerId}] ${task.key}: ${(augRes.stderr || augRes.stdout || '').trim()}`);
                 perWorker[workerId - 1].fail++;
                 continue;
             }
@@ -548,7 +587,7 @@ async function main() {
 
                 perWorker[workerId - 1].success++;
             } catch (err) {
-                console.error(`[SLICE FAIL w${workerId}] ${task.key}: ${err.message.split('\n')[0]}`);
+                printAboveProgress(`[SLICE FAIL w${workerId}] ${task.key}: ${err.message.split('\n')[0]}`);
                 perWorker[workerId - 1].fail++;
             } finally {
                 try { fs.unlinkSync(tmpStl); } catch (_) { /* ignore */ }
@@ -568,10 +607,13 @@ async function main() {
     await Promise.all(workers);
 
     clearInterval(progressTimer);
+    progressState.active = false;
+    if (progressState.lines > 0) process.stdout.write('\n');
+    progressState.lines = 0;
 
     // Flush any remaining files in the batch
     if (batchEntries.length > 0) {
-        console.log(`Flushing final upload batch: ${(batchBytes / 1e9).toFixed(3)} GB...`);
+        printAboveProgress(`Flushing final upload batch: ${(batchBytes / 1e9).toFixed(3)} GB...`);
         await scheduleUploadIfNeeded(true);
     }
 
